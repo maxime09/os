@@ -1,2 +1,6 @@
 limine/
 kernel.iso
+detailed.log
+kernel.sym
+kernel/bin
+kernel/obj
