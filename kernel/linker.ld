@@ -33,9 +33,11 @@ SECTIONS
     /* Move to the next memory page for .text */
     . = ALIGN(CONSTANT(MAXPAGESIZE));
 
+    kernel_ro_start = .;
     .text : {
         *(.text .text.*)
     } :text
+    
 
     /* Move to the next memory page for .rodata */
     . = ALIGN(CONSTANT(MAXPAGESIZE));
@@ -43,9 +45,12 @@ SECTIONS
     .rodata : {
         *(.rodata .rodata.*)
     } :rodata
+    kernel_ro_end = .;
+    
 
     /* Move to the next memory page for .data */
     . = ALIGN(CONSTANT(MAXPAGESIZE));
+    kernel_wr_start = .;
 
     .data : {
         *(.data .data.*)
@@ -59,6 +64,7 @@ SECTIONS
         *(.bss .bss.*)
         *(COMMON)
     } :data
+    kernel_wr_end = .;
 
     /* Discard .note.* and .eh_frame* since they may cause issues on some hosts. */
     /DISCARD/ : {

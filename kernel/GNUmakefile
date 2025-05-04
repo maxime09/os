@@ -9,7 +9,7 @@ override OUTPUT := kernel
 CC := $(HOME)/opt/cross/bin/x86_64-elf-gcc
 
 # User controllable C flags.
-CFLAGS := -g -O2 -pipe
+CFLAGS := -g -O0 -pipe
 
 # User controllable C preprocessor flags. We set none by default.
 CPPFLAGS :=

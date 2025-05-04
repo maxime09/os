@@ -1,4 +1,5 @@
 #include "mem_function.h"
+#include <stdint.h>
 
 void *memcpy(void *dest, const void *src, size_t n) {
     uint8_t *pdest = (uint8_t *)dest;
@@ -11,11 +12,11 @@ void *memcpy(void *dest, const void *src, size_t n) {
     return dest;
 }
 
-void *memset(void *s, int c, size_t n) {
+void *memset(void *s, uint8_t c, size_t n) {
     uint8_t *p = (uint8_t *)s;
 
     for (size_t i = 0; i < n; i++) {
-        p[i] = (uint8_t)c;
+        p[i] = c;
     }
 
     return s;

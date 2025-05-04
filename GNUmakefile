@@ -3,13 +3,13 @@ MAKEFLAGS += -rR
 .SUFFIXES:
 
 # Default user QEMU flags. These are appended to the QEMU command calls.
-QEMUFLAGS := -m 2G
+QEMUFLAGS := -m 16G
 
 override IMAGE_NAME := kernel
 
 # Toolchain for building the 'limine' executable for the host.
 HOST_CC := cc
-HOST_CFLAGS := -g -O2 -pipe
+HOST_CFLAGS := -g -O0 -pipe
 HOST_CPPFLAGS :=
 HOST_LDFLAGS :=
 HOST_LIBS :=
@@ -19,6 +19,19 @@ all: $(IMAGE_NAME).iso
 
 .PHONY: all-hdd
 all-hdd: $(IMAGE_NAME).hdd
+
+kernel.sym: kernel/bin/kernel
+	objcopy --only-keep-debug kernel/bin/kernel kernel.sym
+
+.PHONY: run-debug
+run-debug: $(IMAGE_NAME).iso kernel.sym
+	qemu-system-x86_64 \
+		-d in_asm,int \
+		-M q35 \
+		-s -S \
+		-cdrom $(IMAGE_NAME).iso \
+		-boot d \
+		$(QEMUFLAGS)
 
 .PHONY: run
 run: $(IMAGE_NAME).iso
