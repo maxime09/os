@@ -4,4 +4,4 @@ detailed.log
 kernel.sym
 kernel/bin
 kernel/obj
-.bochsrc
+.*
