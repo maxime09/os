@@ -55,7 +55,7 @@ void pmm_init(){
     size_t bitmap_size = ALIGN_UP(ALIGN_DOWN(top_addr, PAGE_SIZE) / PAGE_SIZE / 8, PAGE_SIZE);
 
     kprintf("Total memory: %d bytes = %d kb = %d Mb = %d Gb.\n", info.memory_size, info.memory_size / 1024, info.memory_size / 1024 / 1024, info.memory_size / 1024 / 1024 / 1024);
-    kprintf("Bimap size: %d bytes.\n", bitmap_size);
+    kprintf("Bitmap size: %d bytes.\n", bitmap_size);
 
     bitmap.size = bitmap_size;
 

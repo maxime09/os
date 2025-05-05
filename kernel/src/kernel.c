@@ -47,6 +47,15 @@ static volatile struct limine_hhdm_request hhdm_request = {
     .revision = 0
 };
 
+__attribute__((used, section(".limine_requests")))
+static volatile struct limine_paging_mode_request paging_mode_request = {
+    .id = LIMINE_PAGING_MODE_REQUEST,
+    .revision = 0,
+    .mode = LIMINE_PAGING_MODE_X86_64_4LVL,
+    .max_mode = LIMINE_PAGING_MODE_X86_64_4LVL,
+    .min_mode = LIMINE_PAGING_MODE_X86_64_4LVL
+};
+
 __attribute__((used, section(".limine_requests_start")))
 static volatile LIMINE_REQUESTS_START_MARKER;
 
@@ -232,6 +241,7 @@ void kmain(void){
     struct limine_bootloader_info_response *bootloader_info = bootloader_info_request.response;
 
     kprintf("Bootloader: name: %s version: %s revision: %d\n", bootloader_info->name, bootloader_info->version, bootloader_info->revision);
+    kprintf("Paging mode: %u\n", paging_mode_request.response->mode);
 
     struct limine_hhdm_response *hhdm = hhdm_request.response;
 

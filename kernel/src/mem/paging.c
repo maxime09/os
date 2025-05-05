@@ -41,6 +41,12 @@ void map_page(PAGE_DIR current_page_directory, uintptr_t phys_addr, uintptr_t vi
     PAGE_DIR pml1 = (PAGE_DIR)phys_addr_to_limine_virtual_addr((uintptr_t)get_pml_entry(pml2, index2, flags));
 
     pml1[index1] = phys_addr | flags;
+    if(flags & PTE_READ_WRITE){
+        // set read/write to higher level of pml
+        pml2[index2] |= PTE_READ_WRITE;
+        pml3[index3] |= PTE_READ_WRITE;
+        pml4[index4] |= PTE_READ_WRITE;
+    }
 
     flush_tlb((void *)virt_addr);
 }
@@ -48,7 +54,7 @@ void map_page(PAGE_DIR current_page_directory, uintptr_t phys_addr, uintptr_t vi
 static PAGE_DIR root_page_directory;
 
 void update_cr3(PAGE_DIR current_page_directory){
-    uintptr_t addr = limine_virtual_addr_to_phys_addr((uintptr_t)current_page_directory);
+    uintptr_t addr = (uintptr_t)current_page_directory;
     __asm__ volatile("mov %0, %%cr3" : : "r" (addr) : "memory");
 }
 
@@ -67,13 +73,12 @@ uintptr_t get_rip(){
 void vmm_init(uintptr_t kernel_ro_start, uintptr_t kernel_ro_end, uintptr_t kernel_wr_start, uintptr_t kernel_wr_end){
     root_page_directory = create_page_directory();
 
-    // Identity map the first 4 GB
+    /*// Identity map the first 4 GB
     for (uintptr_t i = 0; i < 4 * GB; i += PAGE_SIZE){
         map_page(root_page_directory, i, i, PTE_PRESENT | PTE_READ_WRITE);
-    }
+    }*/
 
     // Map kernel address space
-    // Todo: remove
     for (uintptr_t i = 0; i < 4 * GB; i += PAGE_SIZE){
         
         map_page(root_page_directory, i, phys_addr_to_limine_virtual_addr(i), PTE_PRESENT | PTE_READ_WRITE);
@@ -95,18 +100,8 @@ void vmm_init(uintptr_t kernel_ro_start, uintptr_t kernel_ro_end, uintptr_t kern
         map_page(root_page_directory, phys_addr, virt_addr, PTE_PRESENT | PTE_READ_WRITE);
     }
 
-    size_t sp;
-    __asm__ volatile("mov %%rsp, %0" : "=r"(sp) : );
-    find_phys_addr(root_page_directory, sp);
 
-    
-
-    uintptr_t test_addr = get_rip();
-    void *res = find_phys_addr(old_root_page_directory, test_addr);
-    // expected 80 7f 05 00
-
-
-    update_cr3(root_page_directory);
+    update_cr3(find_phys_addr(old_root_page_directory, root_page_directory));
     
     kprintf("Paging setup.\n");
 }
@@ -122,5 +117,9 @@ void *find_phys_addr(PAGE_DIR pml4, uintptr_t virt_addr){
     PAGE_DIR pml1 = (PAGE_DIR)phys_addr_to_limine_virtual_addr((uintptr_t)get_pml_entry(pml2, index2, 0));
     
     uintptr_t phys_addr = pml1[index1] & ~(2047);
+    phys_addr |= (virt_addr) & 0xfff;
+    // remove XD bit
+    phys_addr &= ~(1ll<<63);
+
     return (void *) phys_addr;
 }
