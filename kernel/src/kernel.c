@@ -104,7 +104,7 @@ size_t char_pos_y = 0;
 size_t char_per_row;
 size_t rows_count;
 
-static inline void kputc(char c){
+void kputc(char c){
     if(c == '\n'){
         char_pos_x = 0;
         char_pos_y += 1;
@@ -121,7 +121,7 @@ static inline void kputc(char c){
     }
 }
 
-static inline void kputs(char *s){
+void kputs(char *s){
     while(*s)
         kputc(*(s++));
 }
@@ -217,6 +217,8 @@ extern uint8_t kernel_ro_end;
 extern uint8_t kernel_wr_start;
 extern uint8_t kernel_wr_end;
 
+extern void test();
+
 void kmain(void){
     // Ensure the bootloader actually understands our base revision (see spec).
     if (LIMINE_BASE_REVISION_SUPPORTED == false) {
@@ -265,6 +267,8 @@ void kmain(void){
     }*/
     PIC_remap(0x20, 0x28);
     IRQ_clear_mask(1);
+
+    test();
 
     // We're done, just hang...
     hcf();

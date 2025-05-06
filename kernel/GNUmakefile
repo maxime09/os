@@ -9,7 +9,7 @@ override OUTPUT := kernel
 CC := $(HOME)/opt/cross/bin/x86_64-elf-gcc
 
 # User controllable C flags.
-CFLAGS := -g -O0 -pipe
+CFLAGS := -g -O2 -pipe
 
 # User controllable C preprocessor flags. We set none by default.
 CPPFLAGS :=
@@ -80,15 +80,15 @@ override HEADER_DEPS := $(addprefix obj/,$(CFILES:.c=.c.d) $(ASFILES:.S=.S.d))
 
 # Default target. This must come first, before header dependencies.
 .PHONY: all
-all: bin/$(OUTPUT)
+all: bin/$(OUTPUT) 
 
 # Include header dependencies.
 -include $(HEADER_DEPS)
 
 # Link rules for the final executable.
-bin/$(OUTPUT): GNUmakefile linker.ld $(OBJ)
+bin/$(OUTPUT): GNUmakefile linker.ld $(OBJ) rust-kernel/librust_kernel.a
 	mkdir -p "$$(dirname $@)"
-	$(CC) $(CFLAGS) $(LDFLAGS) $(OBJ) -o $@
+	$(CC) $(CFLAGS) $(LDFLAGS) $(OBJ) rust-kernel/librust_kernel.a -o $@
 
 # Compilation rules for *.c files.
 obj/%.c.o: src/%.c GNUmakefile
@@ -105,7 +105,12 @@ obj/%.asm.o: src/%.asm GNUmakefile
 	mkdir -p "$$(dirname $@)"
 	nasm $(NASMFLAGS) $< -o $@
 
+.PHONY: rust-kernel/librust_kernel.a
+rust-kernel/librust_kernel.a:
+	make -C rust-kernel
+
 # Remove object files and the final executable.
 .PHONY: clean
 clean:
 	rm -rf bin obj
+	make -C rust-kernel clean

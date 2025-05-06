@@ -7,11 +7,10 @@
 
 extern void common_interrupt_handler(void);
 
+extern void rust_interrupt_handler(unsigned int interrupt_code, unsigned int error_code);
+
 void interrupt_handler(struct cpu_state cpu, struct stack_state stack, unsigned int interrupt){
-    kprintf("Interrupts %u\n", interrupt);
-    if(interrupt >= 0x20){
-        pic_sendEOI((uint8_t) interrupt);
-    }
+    rust_interrupt_handler(interrupt, stack.error_code);
 }
 
 typedef struct {
