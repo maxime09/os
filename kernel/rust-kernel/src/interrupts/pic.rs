@@ -10,7 +10,7 @@ use crate::{inb, io_wait, outb};
 
 #[unsafe(no_mangle)]
 pub fn IRQ_set_mask(mut irq_num:  u8){
-    let port = if(irq_num < 8){
+    let port = if irq_num < 8 {
         PIC1_DATA
     }else {
         irq_num -= 8;
@@ -24,7 +24,7 @@ pub fn IRQ_set_mask(mut irq_num:  u8){
 
 #[unsafe(no_mangle)]
 pub fn IRQ_clear_mask(mut irq_num:  u8){
-    let port = if(irq_num < 8){
+    let port = if irq_num < 8 {
         PIC1_DATA
     }else {
         irq_num -= 8;
@@ -71,7 +71,7 @@ const PIC_EOI: u8 = 0x20;
 #[unsafe(no_mangle)]
 pub fn PIC_sendEOI(irq: u8){
     unsafe {
-        if(irq >= 0x28){
+        if irq >= 0x28 {
             outb(PIC2_COMMAND, PIC_EOI); // interrupts from the slave
         }
         // we need to send end of interrupt to the master in both case

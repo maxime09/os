@@ -55,6 +55,6 @@ typedef __UINTPTR_TYPE__ uintptr_t;
 typedef __INTMAX_TYPE__ intmax_t;
 typedef __UINTMAX_TYPE__ uintmax_t;
 
-
+typedef __SIZE_TYPE__ size_t;
 
 #endif

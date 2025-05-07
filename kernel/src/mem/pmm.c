@@ -145,7 +145,8 @@ void *find_free_pages(size_t requested_count){
     return NULL;
 }
 
-void *alloc_page(size_t page_count){
+
+void *alloc_page_phys_addr(size_t page_count){
     void *pointer = find_free_pages(page_count);
 
     if(pointer == NULL){
@@ -160,5 +161,9 @@ void *alloc_page(size_t page_count){
 
     info.used_pages += page_count;
 
-    return (void *)(uintptr_t)(phys_addr_to_limine_virtual_addr(index * PAGE_SIZE));
+    return (void *)(index * PAGE_SIZE);
+}
+
+void *alloc_page(size_t page_count){
+    return (void*)phys_addr_to_limine_virtual_addr((uintptr_t)alloc_page_phys_addr(page_count));
 }

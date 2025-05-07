@@ -13,3 +13,4 @@ pub extern "C" fn rust_interrupt_handler(interrupt_code: u64, error_code: u64){
         _ => {println!("Interrupt {}, error code: {}", interrupt_code, error_code);}
     }
 }
+

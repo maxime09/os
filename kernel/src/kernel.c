@@ -218,6 +218,7 @@ extern uint8_t kernel_wr_start;
 extern uint8_t kernel_wr_end;
 
 extern void test();
+extern void init_alloc();
 
 void kmain(void){
 
@@ -260,11 +261,7 @@ void kmain(void){
     pmm_init();
     vmm_init((uintptr_t)&kernel_ro_start, (uintptr_t)&kernel_ro_end, (uintptr_t)&kernel_wr_start, (uintptr_t)&kernel_wr_end);
     idt_init();
-
-    for(size_t i = 0; i < 20; i++){
-        void *ptr = alloc_page(1);
-        kprintf("%d %x\n", i, ptr);
-    }
+    init_alloc();
 
     /*for(int i = 0; i < 32; i++){
         IRQ_clear_mask(i);

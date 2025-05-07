@@ -29,6 +29,17 @@ void flush_tlb(void* addr){
     __asm__ volatile("invlpg (%0)" : : "r" (addr));
 }
 
+uintptr_t get_cr3(){
+    uintptr_t res;
+    __asm__ volatile("mov %%cr3, %0" : "=r"(res) : );
+    return res;
+}
+
+void map_page_kernel(uintptr_t phys_addr, uintptr_t virt_addr, int flags){
+    PAGE_DIR current_page_directory = (PAGE_DIR) phys_addr_to_limine_virtual_addr(get_cr3());
+    map_page(current_page_directory, phys_addr, virt_addr, flags);
+}
+
 void map_page(PAGE_DIR current_page_directory, uintptr_t phys_addr, uintptr_t virt_addr, int flags){
     uintptr_t index4 = (virt_addr & ((uintptr_t)0x1ff << 39)) >> 39;
     uintptr_t index3 = (virt_addr & ((uintptr_t)0x1ff << 30)) >> 30;
@@ -51,18 +62,13 @@ void map_page(PAGE_DIR current_page_directory, uintptr_t phys_addr, uintptr_t vi
     flush_tlb((void *)virt_addr);
 }
 
-static PAGE_DIR root_page_directory;
 
 void update_cr3(PAGE_DIR current_page_directory){
     uintptr_t addr = (uintptr_t)current_page_directory;
     __asm__ volatile("mov %0, %%cr3" : : "r" (addr) : "memory");
 }
 
-uintptr_t get_cr3(){
-    uintptr_t res;
-    __asm__ volatile("mov %%cr3, %0" : "=r"(res) : );
-    return res;
-}
+
 
 uintptr_t get_rip(){
     uintptr_t res;
@@ -71,7 +77,7 @@ uintptr_t get_rip(){
 }
 
 void vmm_init(uintptr_t kernel_ro_start, uintptr_t kernel_ro_end, uintptr_t kernel_wr_start, uintptr_t kernel_wr_end){
-    root_page_directory = create_page_directory();
+    PAGE_DIR root_page_directory = create_page_directory();
 
     /*// Identity map the first 4 GB
     for (uintptr_t i = 0; i < 4 * GB; i += PAGE_SIZE){

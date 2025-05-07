@@ -10,4 +10,6 @@ crate-type = ["staticlib"]
 bindgen = "0.71.1"
 
 [dependencies]
+spin = "0.10.0"
+talc = "4.4.2"
 x86_64 = "0.15.2"
