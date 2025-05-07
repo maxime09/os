@@ -114,9 +114,9 @@ void kputc(char c){
         if(char_pos_x >= char_per_row){
             char_pos_x = 0;
             char_pos_y++;
-            if(char_pos_y >= rows_count){
-                char_pos_y = 0;
-            }
+        }
+        if(char_pos_y >= rows_count){
+            char_pos_y = 0;
         }
     }
 }
@@ -220,6 +220,9 @@ extern uint8_t kernel_wr_end;
 extern void test();
 
 void kmain(void){
+
+    __asm__ volatile("cli");
+
     // Ensure the bootloader actually understands our base revision (see spec).
     if (LIMINE_BASE_REVISION_SUPPORTED == false) {
         hcf();
@@ -243,6 +246,7 @@ void kmain(void){
     struct limine_bootloader_info_response *bootloader_info = bootloader_info_request.response;
 
     kprintf("Bootloader: name: %s version: %s revision: %d\n", bootloader_info->name, bootloader_info->version, bootloader_info->revision);
+    kprintf("Rows count: %u\n", rows_count);
     kprintf("Paging mode: %u\n", paging_mode_request.response->mode);
 
     struct limine_hhdm_response *hhdm = hhdm_request.response;
@@ -266,7 +270,10 @@ void kmain(void){
         IRQ_clear_mask(i);
     }*/
     PIC_remap(0x20, 0x28);
+    IRQ_set_mask(0);
     IRQ_clear_mask(1);
+
+    __asm__ volatile("sti");
 
     test();
 

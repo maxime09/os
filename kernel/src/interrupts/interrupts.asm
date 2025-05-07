@@ -4,16 +4,46 @@ global _isr_addr
 %macro no_error_code_interrupt_handler 1
 global interrupt_handler_%1
 interrupt_handler_%1:
-    push    dword 0                     ; push 0 as error code
-    push    dword %1                   ; push the interrupt number 
-    jmp     common_interrupt_handler    ; jump to the common handler
+    push dword 0
+    push rsi ; save old rsi
+    xor rsi, rsi
+    mov esi, [rsp+8]
+
+    pusha64
+
+    mov rdi, %1
+
+    call interrupt_handler
+
+    popa64
+
+    pop rsi ; restore old rsi
+
+    add rsp, 8
+
+    iretq
 %endmacro
 
 %macro error_code_interrupt_handler 1
 global interrupt_handler_%1
 interrupt_handler_%1:
-    push    dword %1                    ; push the interrupt number
-    jmp     common_interrupt_handler    ; jump to the common handler
+    push rsi ; save old rsi
+    xor rsi, rsi
+    mov esi, [rsp+8]
+
+    pusha64
+
+    mov rdi, %1
+
+    call interrupt_handler
+
+    popa64
+
+    pop rsi ; restore old rsi
+
+    add rsp, 8
+
+    iretq
 %endmacro
 
 %macro ISR_ADDR 1
@@ -59,17 +89,6 @@ extern interrupt_handler
 %endmacro
 
 
-common_interrupt_handler:               ; the common parts of the generic interrupt handler
-    ; save the registers
-    pusha64
-
-    call interrupt_handler
-
-    popa64
-
-    add     rsp, 16
-
-    iretq
 
 no_error_code_interrupt_handler 0
 no_error_code_interrupt_handler 1

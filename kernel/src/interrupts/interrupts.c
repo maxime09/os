@@ -7,10 +7,10 @@
 
 extern void common_interrupt_handler(void);
 
-extern void rust_interrupt_handler(unsigned int interrupt_code, unsigned int error_code);
+extern void rust_interrupt_handler(uint64_t interrupt_code, uint64_t error_code);
 
-void interrupt_handler(struct cpu_state cpu, struct stack_state stack, unsigned int interrupt){
-    rust_interrupt_handler(interrupt, stack.error_code);
+void interrupt_handler(uint64_t interrupt_code, uint64_t error_code){
+    rust_interrupt_handler(interrupt_code, error_code);
 }
 
 typedef struct {
