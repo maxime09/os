@@ -14,6 +14,7 @@ pub mod interrupts;
 use alloc::boxed::Box;
 pub use interrupts::*;
 use x86_64::instructions::hlt;
+pub mod vfs;
 
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
@@ -24,10 +25,18 @@ fn panic(info: &PanicInfo) -> ! {
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn test() -> !{
+pub extern "C" fn rust_kmain(initrd_ptr: *const core::ffi::c_void, initrd_size: usize) -> !{
     println!("Hello from rust!");
     let heap_value = Box::new(42);
     println!("heap_value at {:p}", heap_value);
+
+    println!("Initrd: addr = {:p}, size = {}", initrd_ptr, initrd_size);
+
+    unsafe{
+        let c = *(initrd_ptr as * const u8);
+        kputc(c as i8);
+    }
+
     loop {
         hlt();
     }

@@ -19,7 +19,7 @@
 
 typedef uint64_t *PAGE_DIR;
 
-void vmm_init(uintptr_t kernel_ro_start, uintptr_t kernel_ro_end, uintptr_t kernel_wr_start, uintptr_t kernel_wr_end);
+void vmm_init(uintptr_t kernel_ro_start, uintptr_t kernel_ro_end, uintptr_t kernel_wr_start, uintptr_t kernel_wr_end, uintptr_t initrd_start, uintptr_t initrd_end);
 void *find_phys_addr(PAGE_DIR pml4, uintptr_t virt_addr);
 void map_page_kernel(uintptr_t phys_addr, uintptr_t virt_addr, int flags);
 void map_page(PAGE_DIR current_page_directory, uintptr_t phys_addr, uintptr_t virt_addr, int flags);

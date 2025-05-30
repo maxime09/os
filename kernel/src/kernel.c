@@ -56,6 +56,14 @@ static volatile struct limine_paging_mode_request paging_mode_request = {
     .min_mode = LIMINE_PAGING_MODE_X86_64_4LVL
 };
 
+__attribute__((used, section(".limine_requests")))
+static volatile struct limine_module_request module_request = {
+    .id = LIMINE_MODULE_REQUEST,
+    .revision = 0
+};
+
+
+
 __attribute__((used, section(".limine_requests_start")))
 static volatile LIMINE_REQUESTS_START_MARKER;
 
@@ -217,7 +225,7 @@ extern uint8_t kernel_ro_end;
 extern uint8_t kernel_wr_start;
 extern uint8_t kernel_wr_end;
 
-extern void test();
+extern void rust_kmain(void *, uintptr_t);
 extern void init_alloc();
 
 void kmain(void){
@@ -250,6 +258,17 @@ void kmain(void){
     kprintf("Rows count: %u\n", rows_count);
     kprintf("Paging mode: %u\n", paging_mode_request.response->mode);
 
+    struct limine_module_response *module_response = module_request.response;
+    kprintf("Module count: %d\n", module_response->module_count); 
+
+    if(module_response->module_count == 0){
+        kprintf("Missing initrd\n");
+        hcf();
+    }
+
+    struct limine_file *initrd = module_response->modules[0];
+    kprintf("%x %d\n", initrd->address, initrd->size);
+
     struct limine_hhdm_response *hhdm = hhdm_request.response;
 
     kprintf("HHDM offset: %x\n", hhdm->offset);
@@ -257,9 +276,11 @@ void kmain(void){
 
     memmap = memmap_request.response;
 
+    uintptr_t initrd_start = (uintptr_t)initrd->address;
+    uintptr_t initrd_end = initrd_start + initrd->size;
 
     pmm_init();
-    vmm_init((uintptr_t)&kernel_ro_start, (uintptr_t)&kernel_ro_end, (uintptr_t)&kernel_wr_start, (uintptr_t)&kernel_wr_end);
+    vmm_init((uintptr_t)&kernel_ro_start, (uintptr_t)&kernel_ro_end, (uintptr_t)&kernel_wr_start, (uintptr_t)&kernel_wr_end, initrd_start, initrd_end);
     idt_init();
     init_alloc();
 
@@ -272,7 +293,9 @@ void kmain(void){
 
     __asm__ volatile("sti");
 
-    test();
+    
+
+    rust_kmain(initrd->address, initrd->size);
 
     // We're done, just hang...
     hcf();

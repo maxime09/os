@@ -76,13 +76,18 @@ uintptr_t get_rip(){
     return res;
 }
 
-void vmm_init(uintptr_t kernel_ro_start, uintptr_t kernel_ro_end, uintptr_t kernel_wr_start, uintptr_t kernel_wr_end){
+void vmm_init(uintptr_t kernel_ro_start, uintptr_t kernel_ro_end, uintptr_t kernel_wr_start, uintptr_t kernel_wr_end, uintptr_t initrd_start, uintptr_t initrd_end){
     PAGE_DIR root_page_directory = create_page_directory();
 
     /*// Identity map the first 4 GB
     for (uintptr_t i = 0; i < 4 * GB; i += PAGE_SIZE){
         map_page(root_page_directory, i, i, PTE_PRESENT | PTE_READ_WRITE);
     }*/
+
+    //map initrd
+    for (uintptr_t i = ALIGN_DOWN(initrd_start, PAGE_SIZE); i < ALIGN_UP(initrd_end, PAGE_SIZE); i += PAGE_SIZE){
+        map_page(root_page_directory, limine_virtual_addr_to_phys_addr(i), i, PTE_PRESENT | PTE_READ_WRITE);
+    }
 
     // Map kernel address space
     for (uintptr_t i = 0; i < 4 * GB; i += PAGE_SIZE){

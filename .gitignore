@@ -5,3 +5,4 @@ kernel.sym
 kernel/bin
 kernel/obj
 .bochsrc
+initrd
