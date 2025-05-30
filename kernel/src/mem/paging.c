@@ -107,7 +107,7 @@ void vmm_init(uintptr_t kernel_ro_start, uintptr_t kernel_ro_end, uintptr_t kern
     }
 
 
-    update_cr3(find_phys_addr(old_root_page_directory, root_page_directory));
+    update_cr3(find_phys_addr(old_root_page_directory, (uintptr_t)root_page_directory));
     
     kprintf("Paging setup.\n");
 }
