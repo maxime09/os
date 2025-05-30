@@ -9,12 +9,12 @@ include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 
 extern crate alloc;
 
-use core::{ffi::c_int, fmt, panic::PanicInfo};
+use core::{ffi::c_int, fmt, panic::PanicInfo, slice};
 pub mod interrupts;
 use alloc::boxed::Box;
 pub use interrupts::*;
 use x86_64::instructions::hlt;
-pub mod vfs;
+pub mod fs;
 
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
@@ -32,10 +32,10 @@ pub extern "C" fn rust_kmain(initrd_ptr: *const core::ffi::c_void, initrd_size: 
 
     println!("Initrd: addr = {:p}, size = {}", initrd_ptr, initrd_size);
 
-    unsafe{
-        let c = *(initrd_ptr as * const u8);
-        kputc(c as i8);
-    }
+    let data = unsafe{slice::from_raw_parts(initrd_ptr as *const u8, initrd_size)};
+
+    let headers = fs::ustar::parse_file(data);
+    println!("Initrd content: {:?}", headers);
 
     loop {
         hlt();
