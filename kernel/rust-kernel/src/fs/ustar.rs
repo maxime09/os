@@ -1,6 +1,8 @@
-use alloc::{string::String, vec::Vec};
+use alloc::{boxed::Box, collections::BTreeMap, string::String, vec::Vec};
 
-#[derive(Debug, PartialEq, Eq)]
+use super::vfs::{self, FsDriver, Inode, PathBuf};
+
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum FileType{
     RegularFile,
     Folder,
@@ -13,6 +15,15 @@ pub struct Header{
     size: usize,
     file_type: FileType,
     start_addr: usize,
+}
+
+impl Header {
+    pub fn is_readable(&self) -> bool{
+        match self.file_type{
+            FileType::RegularFile => true,
+            _ => false
+        }
+    }
 }
 
 
@@ -78,4 +89,87 @@ pub fn parse_file(data: &[u8]) -> Vec<Header>{
         res.push(header);
     }
     res
+}
+
+pub fn headers_to_fs(headers: Vec<Header>, data: Box<[u8]>) -> Inode{
+    let mut driver = UstarDriver::new(data);
+    let mut id = 0;
+    let mut root = Inode::new_folder(id);
+    let root_header = Header{ name: String::new(), size: 0, file_type: FileType::Folder, start_addr: 0};
+    driver.insert_header(id, root_header);
+    id += 1;
+    for header in headers.into_iter(){
+        let mut path = PathBuf::from(header.name.as_ref());
+        let mut parent = &mut root;
+        if path.is_empty(){
+            panic!("File with no path");
+        }
+        while !path.is_basename(){
+            let component = path.split_first_component().unwrap();
+            parent = parent.search_in_folder_mut(&component).unwrap();
+        }
+
+        let name = path.split_first_component().unwrap();
+
+        match header.file_type{
+            FileType::RegularFile => {
+                let node = Inode::new_file(id);
+                driver.insert_header(id, header);
+                id += 1;
+                parent.add_to_folder(node, name).unwrap();
+            },
+            FileType::Folder => {
+                let node = Inode::new_folder(id);
+                driver.insert_header(id, header);
+                id += 1;
+                parent.add_to_folder(node, name).unwrap();
+            }
+            _ => {}
+        }
+    }
+    let mount_point = Inode::new_mountpoint(root, driver, 0);
+    mount_point
+}
+
+pub struct UstarDriver{
+    headers: BTreeMap<usize, Header>,
+    data: Box<[u8]>
+}
+
+impl UstarDriver{
+    pub fn new(data: Box<[u8]>) -> Self{
+        UstarDriver { headers: BTreeMap::new(), data }
+    }
+
+    pub fn insert_header(&mut self, id: usize, header: Header){
+        self.headers.insert(id, header);
+    }
+
+    pub fn get_header(&self, id: usize) -> Result<&Header, vfs::Error>{
+        self.headers.get(&id).ok_or(vfs::Error::NotFound)
+    }
+}
+
+impl FsDriver for UstarDriver{
+    fn get_size(&self, node: &Inode) -> Result<usize, vfs::Error> {
+        let id = node.get_id();
+        let header = self.get_header(id)?;
+        Ok(header.size)
+    }
+    
+    fn read(&self, node: &Inode, pos: usize, requested_amount: usize) -> Result<Box<[u8]>, vfs::Error> {
+        let id = node.get_id();
+        let header = self.get_header(id)?;
+        let size = header.size;
+        if header.is_readable(){
+            let start = pos.min(size);
+            let end = (start + requested_amount).min(size);
+            let start_offset = header.start_addr + start;
+            let end_offset = header.start_addr + end;
+            let data = &self.data[start_offset..end_offset];
+            Ok(Box::from(data))
+        }else{
+            Err(vfs::Error::NotAReadableFile)
+        }
+    }
 }

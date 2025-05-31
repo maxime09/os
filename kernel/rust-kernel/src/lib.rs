@@ -11,7 +11,8 @@ extern crate alloc;
 
 use core::{ffi::c_int, fmt, panic::PanicInfo, slice};
 pub mod interrupts;
-use alloc::boxed::Box;
+use alloc::{boxed::Box, string::String};
+use fs::vfs;
 pub use interrupts::*;
 use x86_64::instructions::hlt;
 pub mod fs;
@@ -27,15 +28,21 @@ fn panic(info: &PanicInfo) -> ! {
 #[unsafe(no_mangle)]
 pub extern "C" fn rust_kmain(initrd_ptr: *const core::ffi::c_void, initrd_size: usize) -> !{
     println!("Hello from rust!");
-    let heap_value = Box::new(42);
-    println!("heap_value at {:p}", heap_value);
+    
 
-    println!("Initrd: addr = {:p}, size = {}", initrd_ptr, initrd_size);
 
-    let data = unsafe{slice::from_raw_parts(initrd_ptr as *const u8, initrd_size)};
+    let data = unsafe{Box::from_raw(slice::from_raw_parts_mut(initrd_ptr as *mut u8, initrd_size))};
 
-    let headers = fs::ustar::parse_file(data);
-    println!("Initrd content: {:?}", headers);
+    let headers = fs::ustar::parse_file(&data);
+
+    let vfs = fs::ustar::headers_to_fs(headers, data);
+
+    let path_test = vfs::PathBuf::from("test3/test4");
+    let mountpoint = vfs.get_mountpoint().unwrap();
+    let node = vfs.find(path_test).unwrap();
+    let data = vfs.read(mountpoint, node, 0, 1024).unwrap();
+    let data_str = str::from_utf8(&data).unwrap();
+    println!("\n\n{}", data_str);
 
     loop {
         hlt();
