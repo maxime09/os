@@ -4,7 +4,7 @@ global _isr_addr
 %macro no_error_code_interrupt_handler 1
 global interrupt_handler_%1
 interrupt_handler_%1:
-    push dword 0
+    push qword 0
     push rsi ; save old rsi
     xor rsi, rsi
     mov esi, [rsp+8]

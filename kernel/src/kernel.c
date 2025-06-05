@@ -6,6 +6,7 @@
 #include <stdarg.h>
 #include "interrupts/pic.h"
 #include "mem/paging.h"
+#include "gdt.h"
 
 #define LIMINE_API_REVISION 3
 
@@ -282,6 +283,7 @@ void kmain(void){
     pmm_init();
     vmm_init((uintptr_t)&kernel_ro_start, (uintptr_t)&kernel_ro_end, (uintptr_t)&kernel_wr_start, (uintptr_t)&kernel_wr_end, initrd_start, initrd_end);
     idt_init();
+    gdt_init();
     init_alloc();
 
     /*for(int i = 0; i < 32; i++){

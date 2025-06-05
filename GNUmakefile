@@ -26,7 +26,8 @@ kernel.sym: kernel/bin/kernel
 .PHONY: run-debug
 run-debug: $(IMAGE_NAME).iso kernel.sym
 	qemu-system-x86_64 \
-		-d in_asm,int \
+		-d int \
+		-no-reboot \
 		-M q35 \
 		-s -S \
 		-cdrom $(IMAGE_NAME).iso \

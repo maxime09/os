@@ -79,10 +79,10 @@ uintptr_t get_rip(){
 void vmm_init(uintptr_t kernel_ro_start, uintptr_t kernel_ro_end, uintptr_t kernel_wr_start, uintptr_t kernel_wr_end, uintptr_t initrd_start, uintptr_t initrd_end){
     PAGE_DIR root_page_directory = create_page_directory();
 
-    /*// Identity map the first 4 GB
+    // Identity map the first 4 GB
     for (uintptr_t i = 0; i < 4 * GB; i += PAGE_SIZE){
         map_page(root_page_directory, i, i, PTE_PRESENT | PTE_READ_WRITE);
-    }*/
+    }
 
     //map initrd
     for (uintptr_t i = ALIGN_DOWN(initrd_start, PAGE_SIZE); i < ALIGN_UP(initrd_end, PAGE_SIZE); i += PAGE_SIZE){
@@ -101,7 +101,7 @@ void vmm_init(uintptr_t kernel_ro_start, uintptr_t kernel_ro_end, uintptr_t kern
     for(uintptr_t virt_addr = ALIGN_DOWN(kernel_ro_start, PAGE_SIZE); virt_addr < kernel_ro_end; virt_addr += PAGE_SIZE)
     {
         uintptr_t phys_addr = (uintptr_t)find_phys_addr(old_root_page_directory, virt_addr);
-        map_page(root_page_directory, phys_addr, virt_addr, PTE_PRESENT);
+        map_page(root_page_directory, phys_addr, virt_addr, PTE_PRESENT | PTE_READ_WRITE);
     }
 
     // map kernel data section
