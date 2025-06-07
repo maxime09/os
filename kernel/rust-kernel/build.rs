@@ -5,7 +5,7 @@ fn main() {
 
     let header_path = PathBuf::from("../src/rust_export.h")
         .canonicalize()
-        .expect("Cannot canonicakuze path");
+        .expect("Cannot canonicalize path");
     let header_path_str = header_path.to_str().expect("Path is not a valid string");
 
     let bindings = bindgen::Builder::default()

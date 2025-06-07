@@ -16,6 +16,8 @@ use fs::vfs;
 pub use interrupts::*;
 use x86_64::instructions::hlt;
 pub mod fs;
+//pub mod pci;
+pub mod pit;
 
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
@@ -43,6 +45,10 @@ pub extern "C" fn rust_kmain(initrd_ptr: *const core::ffi::c_void, initrd_size: 
     let data = vfs.read(mountpoint, node, 0, 1024).unwrap();
     let data_str = str::from_utf8(&data).unwrap();
     println!("\n\n{}", data_str);
+    x86_64::instructions::interrupts::without_interrupts(|| {
+        pit::setup_PIT(1);
+        pic::IRQ_clear_mask(0);
+    });
 
     loop {
         hlt();

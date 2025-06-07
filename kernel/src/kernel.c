@@ -251,6 +251,8 @@ void kmain(void){
     char_per_row = fb_width / CHAR_WIDTH;
     rows_count = fb_height / CHAR_HEIGHT;
 
+    gdt_init();
+
 
     kputs("Hello, World!\n");
     struct limine_bootloader_info_response *bootloader_info = bootloader_info_request.response;
@@ -283,7 +285,6 @@ void kmain(void){
     pmm_init();
     vmm_init((uintptr_t)&kernel_ro_start, (uintptr_t)&kernel_ro_end, (uintptr_t)&kernel_wr_start, (uintptr_t)&kernel_wr_end, initrd_start, initrd_end);
     idt_init();
-    gdt_init();
     init_alloc();
 
     /*for(int i = 0; i < 32; i++){
