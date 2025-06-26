@@ -63,3 +63,8 @@ void idt_init() {
     __asm__ volatile ("lidt %0" : : "m"(idtr)); // load the new IDT
     __asm__ volatile ("sti"); // set the interrupt flag
 }
+
+void slave_load_idt(){
+    __asm__ volatile ("lidt %0" : : "m"(idtr));
+    __asm__ volatile ("sti");
+}

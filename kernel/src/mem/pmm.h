@@ -33,6 +33,7 @@ uintptr_t phys_addr_to_limine_virtual_code_addr(uintptr_t phys_addr);
 void pmm_init();
 void free_pages(void *pointer, size_t page_count);
 void *alloc_page(size_t page_count);
+void manually_alloc_page(void *ptr);
 
 
 #endif // __PMM_H__

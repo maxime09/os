@@ -36,12 +36,13 @@ pub fn IRQ_clear_mask(mut irq_num:  u8){
     }
 }
 
-const ICW1_ICW4: u8 = 0x01;
+//const ICW1_ICW4: u8 = 0x01;
 const ICW1_INIT: u8 = 0x10;
 
 #[unsafe(no_mangle)]
 pub fn PIC_remap(offset1: u8, offset2: u8){
-    unsafe{
+    x86_64::instructions::interrupts::without_interrupts(|| unsafe{
+        io_wait();
         outb(PIC1_COMMAND, ICW1_INIT | ICW1_INIT); //start the initialization sequence
         io_wait();
         outb(PIC1_COMMAND, ICW1_INIT | ICW1_INIT);
@@ -63,7 +64,7 @@ pub fn PIC_remap(offset1: u8, offset2: u8){
             IRQ_set_mask(i);
             io_wait();
         } 
-    }
+    });
 }
 
 const PIC_EOI: u8 = 0x20;

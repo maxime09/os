@@ -56,12 +56,6 @@ impl Inode{
         }
     }
 
-    pub fn search_in_mountpoint(&self, name: &str) -> Result<&Inode, Error>{
-        match &self.node_type{
-            
-            _ => Err(Error::NotAMountpoint)
-        }
-    }
 
     pub fn add_to_folder(&mut self, file: Inode, name: String) -> Result<(), Error>{
         match &mut self.node_type{

@@ -14,6 +14,8 @@ HOST_CPPFLAGS :=
 HOST_LDFLAGS :=
 HOST_LIBS :=
 
+NPROC := $(shell nproc)
+
 .PHONY: all
 all: $(IMAGE_NAME).iso
 
@@ -32,6 +34,7 @@ run-debug: $(IMAGE_NAME).iso kernel.sym
 		-s -S \
 		-cdrom $(IMAGE_NAME).iso \
 		-boot d \
+		-cpu Skylake-Client-v4 \
 		$(QEMUFLAGS)
 
 .PHONY: run
@@ -40,6 +43,9 @@ run: $(IMAGE_NAME).iso
 		-M q35 \
 		-cdrom $(IMAGE_NAME).iso \
 		-boot d \
+		-enable-kvm \
+		-cpu host \
+		-smp $(NPROC) \
 		$(QEMUFLAGS)
 
 .PHONY: run-uefi

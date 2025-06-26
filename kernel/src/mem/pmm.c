@@ -167,3 +167,9 @@ void *alloc_page_phys_addr(size_t page_count){
 void *alloc_page(size_t page_count){
     return (void*)phys_addr_to_limine_virtual_addr((uintptr_t)alloc_page_phys_addr(page_count));
 }
+
+void manually_alloc_page(void *ptr){
+    uintptr_t addr = (uintptr_t) ptr;
+    uintptr_t page = ALIGN_DOWN(addr, PAGE_SIZE);
+    bitmap_set_bit(&bitmap, PAGE_TO_BIT(page));
+}

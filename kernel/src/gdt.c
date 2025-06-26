@@ -2,8 +2,8 @@
 #include <stdint.h>
 #include "mem_function.h"
 
-static gdt_entry_t gdt_entries[GDT_ENTRY_COUNT];
-static TSS_t tss;
+static gdt_entry_t gdt_entries[GDT_ENTRY_COUNT * CPU_MAX_COUNT];
+static TSS_t tss[CPU_MAX_COUNT];
 
 uint8_t compute_access(uint8_t DPL, uint8_t S, uint8_t E, uint8_t DC, uint8_t RW){
     uint8_t result = 0;
@@ -59,24 +59,25 @@ void gdt_set_tss_entry(int first_index, uint64_t tss_base){
     gdt_entries[first_index+1].access = 0;
 }
 
-void gdt_init() {
-    gdt_set_entry(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0); // NULL segment
-    gdt_set_entry(1, 0, 0xffff, 0, 1, 1, 0, 1, 0, 0, 0); // 16 bit code segment
-    gdt_set_entry(2, 0, 0xffff, 0, 1, 0, 0, 1, 0, 0, 0); // 16 bit data segment
-    gdt_set_entry(3, 0, 0xffffffff, 0, 1, 1, 0, 1, 1, 1, 0); // 32 bit code segment
-    gdt_set_entry(4, 0, 0xffffffff, 0, 1, 0, 0, 1, 1, 1, 0); // 32 bit data segment
-    gdt_set_entry(5, 0, 0xffffffff, 0, 1, 1, 0, 1, 1, 0, 1); // 64 bit kernel code segment
-    gdt_set_entry(6, 0, 0xffffffff, 0, 1, 0, 0, 1, 1, 0, 1); // 64 bit kernel data segment
-    gdt_set_entry(7, 0, 0xffffffff, 0, 1, 1, 0, 1, 1, 0, 1); // 64 bit user code segment
-    gdt_set_entry(8, 0, 0xffffffff, 0, 1, 0, 0, 1, 1, 0, 1); // 64 bit user data segment
+void gdt_init(uint32_t core_id) {
+    int offset = core_id * GDT_ENTRY_COUNT;
+    gdt_set_entry(0 + offset, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0); // NULL segment
+    gdt_set_entry(1 + offset, 0, 0xffff, 0, 1, 1, 0, 1, 0, 0, 0); // 16 bit code segment
+    gdt_set_entry(2 + offset, 0, 0xffff, 0, 1, 0, 0, 1, 0, 0, 0); // 16 bit data segment
+    gdt_set_entry(3 + offset, 0, 0xffffffff, 0, 1, 1, 0, 1, 1, 1, 0); // 32 bit code segment
+    gdt_set_entry(4 + offset, 0, 0xffffffff, 0, 1, 0, 0, 1, 1, 1, 0); // 32 bit data segment
+    gdt_set_entry(5 + offset, 0, 0xffffffff, 0, 1, 1, 0, 1, 1, 0, 1); // 64 bit kernel code segment
+    gdt_set_entry(6 + offset, 0, 0xffffffff, 0, 1, 0, 0, 1, 1, 0, 1); // 64 bit kernel data segment
+    gdt_set_entry(7 + offset, 0, 0xffffffff, 0, 1, 1, 0, 1, 1, 0, 1); // 64 bit user code segment
+    gdt_set_entry(8 + offset, 0, 0xffffffff, 0, 1, 0, 0, 1, 1, 0, 1); // 64 bit user data segment
     
-    memset(&tss, 0, sizeof(TSS_t));
+    memset(&tss[core_id], 0, sizeof(TSS_t));
 
-    gdt_set_tss_entry(9, (uint64_t)&tss);
+    gdt_set_tss_entry(9+offset, (uint64_t)&tss[core_id]);
 
     gdt_ptr gdt_p;
     gdt_p.limit = (sizeof(gdt_entry_t) * GDT_ENTRY_COUNT) - 1;
-    gdt_p.base = (uint64_t)&gdt_entries;
+    gdt_p.base = (uint64_t)&gdt_entries[offset];
 
     
     gdt_load(&gdt_p);

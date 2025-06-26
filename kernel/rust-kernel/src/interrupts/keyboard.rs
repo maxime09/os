@@ -1,4 +1,4 @@
-use crate::{inb, keyboard_interrupt, println, PIC_sendEOI, kputc};
+use crate::{inb, keyboard_interrupt, PIC_sendEOI, kputc};
 
 const KEYBOARD_DATA_PORT: u16 = 0x60;
 

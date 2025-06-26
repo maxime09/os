@@ -68,13 +68,16 @@ void update_cr3(PAGE_DIR current_page_directory){
     __asm__ volatile("mov %0, %%cr3" : : "r" (addr) : "memory");
 }
 
-
+PAGE_DIR new_cr3_value;
 
 uintptr_t get_rip(){
     uintptr_t res;
     __asm__ volatile("leaq (%%rip), %0" : "=r"(res) : );
     return res;
 }
+
+extern uint8_t limine_start;
+extern uint8_t limine_end;
 
 void vmm_init(uintptr_t kernel_ro_start, uintptr_t kernel_ro_end, uintptr_t kernel_wr_start, uintptr_t kernel_wr_end, uintptr_t initrd_start, uintptr_t initrd_end){
     PAGE_DIR root_page_directory = create_page_directory();
@@ -97,6 +100,16 @@ void vmm_init(uintptr_t kernel_ro_start, uintptr_t kernel_ro_end, uintptr_t kern
 
     PAGE_DIR old_root_page_directory = (PAGE_DIR)phys_addr_to_limine_virtual_addr(get_cr3());
 
+
+    uintptr_t limine_start_addr = (uintptr_t) &limine_start;
+    uintptr_t limine_end_addr = (uintptr_t) &limine_end;
+
+    // map limine request section
+    for(uintptr_t virt_addr = ALIGN_DOWN(limine_start_addr, PAGE_SIZE); virt_addr < limine_end_addr; virt_addr += PAGE_SIZE){
+        uintptr_t phys_addr = (uintptr_t)find_phys_addr(old_root_page_directory, virt_addr);
+        map_page(root_page_directory, phys_addr, virt_addr, PTE_PRESENT | PTE_READ_WRITE);
+    }
+
     // map kernel code section
     for(uintptr_t virt_addr = ALIGN_DOWN(kernel_ro_start, PAGE_SIZE); virt_addr < kernel_ro_end; virt_addr += PAGE_SIZE)
     {
@@ -111,11 +124,15 @@ void vmm_init(uintptr_t kernel_ro_start, uintptr_t kernel_ro_end, uintptr_t kern
         map_page(root_page_directory, phys_addr, virt_addr, PTE_PRESENT | PTE_READ_WRITE);
     }
 
-
-    update_cr3(find_phys_addr(old_root_page_directory, (uintptr_t)root_page_directory));
+    new_cr3_value = find_phys_addr(old_root_page_directory, (uintptr_t)root_page_directory);
+    update_cr3(new_cr3_value);
     
     kprintf("Paging setup.\n");
 }
+
+void slave_core_init_vmm(){
+    update_cr3(new_cr3_value);
+};
 
 void *find_phys_addr(PAGE_DIR pml4, uintptr_t virt_addr){
     uintptr_t index4 = (virt_addr & ((uintptr_t)0x1ff << 39)) >> 39;

@@ -63,6 +63,19 @@ static volatile struct limine_module_request module_request = {
     .revision = 0
 };
 
+__attribute__((used, section(".limine_requests")))
+static volatile struct limine_mp_request mp_request = {
+    .id = LIMINE_MP_REQUEST,
+    .revision = 0,
+    .flags = 0, // disable x2APIC
+};
+
+
+__attribute__((used, section(".limine_requests")))
+static volatile struct limine_rsdp_request rsdp_request = {
+    .id = LIMINE_RSDP_REQUEST,
+    .revision = 3,
+};
 
 
 __attribute__((used, section(".limine_requests_start")))
@@ -226,7 +239,8 @@ extern uint8_t kernel_ro_end;
 extern uint8_t kernel_wr_start;
 extern uint8_t kernel_wr_end;
 
-extern void rust_kmain(void *, uintptr_t);
+extern void rust_kmain(void *, uintptr_t, void *);
+extern void rust_slave_main(uint32_t, void *);
 extern void init_alloc();
 
 void kmain(void){
@@ -251,10 +265,12 @@ void kmain(void){
     char_per_row = fb_width / CHAR_WIDTH;
     rows_count = fb_height / CHAR_HEIGHT;
 
-    gdt_init();
+    gdt_init(0);
+    kputs("GDT loaded\n");
 
 
-    kputs("Hello, World!\n");
+    kprintf("CPU count: %d\n", mp_request.response->cpu_count);
+
     struct limine_bootloader_info_response *bootloader_info = bootloader_info_request.response;
 
     kprintf("Bootloader: name: %s version: %s revision: %d\n", bootloader_info->name, bootloader_info->version, bootloader_info->revision);
@@ -283,23 +299,52 @@ void kmain(void){
     uintptr_t initrd_end = initrd_start + initrd->size;
 
     pmm_init();
+    kputs("Initialized physical memory manager\n");
     vmm_init((uintptr_t)&kernel_ro_start, (uintptr_t)&kernel_ro_end, (uintptr_t)&kernel_wr_start, (uintptr_t)&kernel_wr_end, initrd_start, initrd_end);
+    kputs("Initialized virtual memory manager\n");
     idt_init();
+    kputs("Initialized interrupt descriptor table\n");
     init_alloc();
+    kputs("Initialized kernel memory allocator\n");
 
     /*for(int i = 0; i < 32; i++){
         IRQ_clear_mask(i);
     }*/
     PIC_remap(0x20, 0x28);
+    kputs("Remmaped PIC\n");
     IRQ_set_mask(0);
     IRQ_clear_mask(1);
 
+    kputs("IRQ mask setup\n");
+
     __asm__ volatile("sti");
+    kputs("Activated interrupts\n");
 
     
 
-    rust_kmain(initrd->address, initrd->size);
+    rust_kmain(initrd->address, initrd->size, (void *)rsdp_request.response->address);
 
     // We're done, just hang...
     hcf();
 }
+
+void slave_core_kmain(struct limine_mp_info * mp_info){
+    uint32_t core_id = mp_info->lapic_id;
+    gdt_init(core_id);
+    slave_core_init_vmm();
+    slave_load_idt();
+    rust_slave_main(core_id, (void *)rsdp_request.response->address);
+    hcf();
+}
+
+void start_slave_core(void){
+    struct limine_mp_response * response = mp_request.response;
+    uint64_t cpu_count = response->cpu_count;
+    limine_goto_address start_addr = slave_core_kmain;
+    for(uint64_t i = 0; i < cpu_count && i < CPU_MAX_COUNT; i++){
+        if(response->cpus[i]->lapic_id != response->bsp_lapic_id){
+            response->cpus[i]->goto_address = start_addr;
+        }
+    }
+}
+

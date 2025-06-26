@@ -3,6 +3,7 @@
 #include "stdint.h"
 
 #define GDT_ENTRY_COUNT       11
+#define CPU_MAX_COUNT   64
 
 typedef struct {
  uint16_t limit;

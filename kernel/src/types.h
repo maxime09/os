@@ -1,6 +1,7 @@
 #ifndef __TYPES_H__
 #define __TYPES_H__
 
+
 #ifdef __INT8_TYPE__
 typedef __INT8_TYPE__ int8_t;
 #endif

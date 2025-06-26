@@ -11,27 +11,36 @@ extern crate alloc;
 
 use core::{ffi::c_int, fmt, panic::PanicInfo, slice};
 pub mod interrupts;
-use alloc::{boxed::Box, string::String};
+use alloc::{boxed::Box, vec::Vec};
 use fs::vfs;
 pub use interrupts::*;
+use rsdt::{get_ACPISTD_header, MADT};
+use spin::Mutex;
 use x86_64::instructions::hlt;
 pub mod fs;
 //pub mod pci;
 pub mod pit;
+pub mod cpuid;
+pub mod apic;
+pub mod rsdt;
 
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
-    println!("{}", info);
+    println!("Kernel panic: {:?}", info);
     loop {
         hlt();
     }
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn rust_kmain(initrd_ptr: *const core::ffi::c_void, initrd_size: usize) -> !{
+pub extern "C" fn rust_kmain(initrd_ptr: *const core::ffi::c_void, initrd_size: usize, rsdp: *mut core::ffi::c_void) -> !{
     println!("Hello from rust!");
     
-
+    println!("rsdp address: {:p}", rsdp);
+    let rsdt = unsafe { rsdt::RSDT::get_RSDT(rsdp) };
+    println!("RSDT: {:?}", rsdt);
+    let madt = MADT::from_rsdt(&rsdt);
+    println!("MADT: {:?}", madt);
 
     let data = unsafe{Box::from_raw(slice::from_raw_parts_mut(initrd_ptr as *mut u8, initrd_size))};
 
@@ -45,10 +54,16 @@ pub extern "C" fn rust_kmain(initrd_ptr: *const core::ffi::c_void, initrd_size: 
     let data = vfs.read(mountpoint, node, 0, 1024).unwrap();
     let data_str = str::from_utf8(&data).unwrap();
     println!("\n\n{}", data_str);
-    x86_64::instructions::interrupts::without_interrupts(|| {
-        pit::setup_PIT(1);
+    /*x86_64::instructions::interrupts::without_interrupts(|| {
+        pit::setup_PIT(10);
         pic::IRQ_clear_mask(0);
-    });
+    });*/
+
+    apic::setup_apic();
+
+
+    unsafe { start_slave_core() };
+
 
     loop {
         hlt();
@@ -80,10 +95,12 @@ impl fmt::Write for KernelConsole{
     }
 }
 
+static Console: Mutex<KernelConsole> = Mutex::new(KernelConsole());
+
 #[doc(hidden)]
 pub fn _print(args: fmt::Arguments) {
     use core::fmt::Write;
-    let mut console = KernelConsole();
+    let mut console = Console.lock();
     console.write_fmt(args).unwrap();
 }
 
@@ -128,4 +145,12 @@ pub extern "C" fn init_alloc(){
     }
 
     println!("Heap allocator initialized.");
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn rust_slave_main(core_id: u32, rsdp: *mut core::ffi::c_void){
+    let rsdt = unsafe { rsdt::RSDT::get_RSDT(rsdp) };
+    let madt = MADT::from_rsdt(&rsdt);
+
+    println!("Core {} started", core_id);
 }
