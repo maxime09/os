@@ -41,6 +41,12 @@ pub extern "C" fn rust_kmain(initrd_ptr: *const core::ffi::c_void, initrd_size: 
     println!("RSDT: {:?}", rsdt);
     let madt = MADT::from_rsdt(&rsdt);
     println!("MADT: {:?}", madt);
+    let io_apic_addr = unsafe {
+        madt.get_ioapic_addr()
+    };
+    println!("io_apic_addr: {:p}", io_apic_addr);
+    let interrupt_overrides = unsafe { madt.get_interrupt_overrides() };
+    println!("interrupt overrides: {:?}", interrupt_overrides);
 
     let data = unsafe{Box::from_raw(slice::from_raw_parts_mut(initrd_ptr as *mut u8, initrd_size))};
 
@@ -60,6 +66,7 @@ pub extern "C" fn rust_kmain(initrd_ptr: *const core::ffi::c_void, initrd_size: 
     });*/
 
     apic::setup_apic();
+    apic::setup_keyboard_interrupt(io_apic_addr);
 
 
     unsafe { start_slave_core() };
@@ -151,6 +158,7 @@ pub extern "C" fn init_alloc(){
 pub extern "C" fn rust_slave_main(core_id: u32, rsdp: *mut core::ffi::c_void){
     let rsdt = unsafe { rsdt::RSDT::get_RSDT(rsdp) };
     let madt = MADT::from_rsdt(&rsdt);
+    apic::setup_apic();
 
     println!("Core {} started", core_id);
 }

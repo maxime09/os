@@ -121,6 +121,14 @@ pub struct MADT{
     addr: *const u8,
 }
 
+#[derive(Debug)]
+pub struct InterruptSourceOverride{
+    bus: u8,
+    irq: u8,
+    GSI: u32,
+    flags: u16,
+}
+
 impl MADT{
     pub fn from_ptr_and_header(ptr: *const core::ffi::c_void, header: ACPISTDHeader) -> Self{
         MADT { 
@@ -133,4 +141,67 @@ impl MADT{
         let (ptr, header) = rsdt.find_entry(b"APIC").expect("No MADT table found");
         Self::from_ptr_and_header(ptr, header)
     }
+
+    pub unsafe fn get_entries_offset_with_type(&self, entry_type: u8) -> Vec<usize>{
+        let mut result = Vec::new();
+        let mut offset = size_of::<ACPISTDHeader>() + 8;
+        while offset < self.header.length.try_into().unwrap(){
+            let current_type = unsafe {self.addr.byte_offset(offset.try_into().unwrap()).read_unaligned()};
+            let current_length = unsafe {self.addr.byte_offset((offset + 1).try_into().unwrap()).read_unaligned()};
+            if current_type == entry_type{
+                result.push(offset);
+            }
+            offset += current_length as usize
+        }
+        result
+    }
+
+    pub unsafe fn read_byte(&self, offset_of_entry: usize, offset_in_entry: usize) -> u8{
+        unsafe{
+            let addr = self.addr.byte_offset((offset_of_entry + offset_in_entry).try_into().unwrap()) as *const u8;
+            addr.read_unaligned()
+        }
+    }
+
+    pub unsafe fn read_u16(&self, offset_of_entry: usize, offset_in_entry: usize) -> u16{
+        unsafe{
+            let addr = self.addr.byte_offset((offset_of_entry + offset_in_entry).try_into().unwrap()) as *const u16;
+            addr.read_unaligned()
+        }
+    }
+
+    pub unsafe fn read_u32(&self, offset_of_entry: usize, offset_in_entry: usize) -> u32{
+        unsafe{
+            let addr = self.addr.byte_offset((offset_of_entry + offset_in_entry).try_into().unwrap()) as *const u32;
+            addr.read_unaligned()
+        }
+    }
+
+    pub unsafe fn get_ioapic_addr(&self) -> *const u8{
+        unsafe {
+            let entry_offset = self.get_entries_offset_with_type(1)
+                .iter()
+                .next()
+                .cloned()
+                .expect("No I/O APIC entry in MADT.");
+            let addr = self.read_u32(entry_offset, 4) as usize;
+            phys_addr_to_limine_virtual_addr(addr) as *const u8
+        }
+    }
+
+    pub unsafe fn get_interrupt_overrides(&self) -> Vec<InterruptSourceOverride>{
+        let mut result = Vec::new();
+        unsafe{
+            let entries_offset = self.get_entries_offset_with_type(2);
+            for entry_offset in entries_offset{
+                let bus = self.read_byte(entry_offset, 2);
+                let irq = self.read_byte(entry_offset, 3);
+                let GSI = self.read_u32(entry_offset, 4);
+                let flags = self.read_u16(entry_offset, 8);
+                result.push(InterruptSourceOverride { bus, irq, GSI, flags });
+            }
+        }
+        result
+    }
+
 }

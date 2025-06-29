@@ -66,4 +66,78 @@ pub fn setup_apic(){
     if unsafe { base_addr } != get_APIC_BASE(){
         panic!("Failed to setup APIC base address");
     }
+
+    write_lapic(0xF0, read_lapic(0xF0) | 0x100);
+}
+
+pub fn read_lapic(reg: u32) -> u32{
+    unsafe{
+        (base_addr as *const u32)
+            .byte_offset(reg.try_into().unwrap())
+            .read_volatile()
+    }
+}
+
+pub fn write_lapic(reg: u32, value: u32){
+    unsafe{
+        (base_addr as *mut u32)
+            .byte_offset(reg.try_into().unwrap())
+            .write_volatile(value);
+    }
+}
+
+pub fn read_io_apic(ioapicaddr: *const u8, reg: u32) -> u32{
+    unsafe{
+        let address_register_ptr = ioapicaddr.byte_offset(0) as *mut u32;
+        let data_register_ptr = ioapicaddr.byte_offset(0x10) as *const u32;
+    
+        address_register_ptr.write_volatile(reg & 0xff);
+        data_register_ptr.read_volatile()
+    }
+}
+
+pub fn write_io_apic(ioapicaddr: *const u8, reg: u32, value: u32){
+    unsafe{
+        let address_register_ptr = ioapicaddr.byte_offset(0) as *mut u32;
+        let data_register_ptr = ioapicaddr.byte_offset(0x10) as *mut u32;
+    
+        address_register_ptr.write_volatile(reg & 0xff);
+        data_register_ptr.write_volatile(value);
+    }
+}
+
+pub fn setup_interrupt_redirection(ioapicaddr: *const u8, redirection_index: u32, interrupt_vector: u8, delivery_mode: u8, logical_destination: bool, invert_polarity: bool, level_trigger: bool, mask: bool, destination: u8){
+    // TODO read previous value to keep reserved bits value
+    
+    let mut low = interrupt_vector as u32;
+    low |= ((delivery_mode & 0x0F) as u32) << 8;
+    if logical_destination{
+        low |= 1 << 11;
+    }
+    if invert_polarity{
+        low |= 1 << 13;
+    }
+    if level_trigger{
+        low |= 1 << 15;
+    }
+    if mask {
+        low |= 1 << 16;
+    }
+
+    let high = (destination as u32) << 24;
+
+    write_io_apic(ioapicaddr, 0x10 + (2 * redirection_index), low);
+    write_io_apic(ioapicaddr, 0x10 + (2 * redirection_index) + 1, high);
+}
+
+pub fn setup_keyboard_interrupt(ioapicaddr: *const u8){
+    setup_interrupt_redirection(ioapicaddr,
+        1, 
+        0x40, 
+        0x00, 
+        false, 
+        false, 
+        false, 
+        false, 
+        0);
 }
