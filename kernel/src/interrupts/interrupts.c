@@ -45,7 +45,7 @@ void idt_set_descriptor(uint8_t vector, void* isr, uint8_t flags) {
     descriptor->reserved       = 0;
 }
 
-#define IDT_MAX_DESCRIPTORS 34
+#define IDT_MAX_DESCRIPTORS 64
 
 static bool vectors[IDT_MAX_DESCRIPTORS];
 
@@ -54,8 +54,9 @@ extern uintptr_t _isr_addr[];
 void idt_init() {
     idtr.base = (size_t)&idt[0];
     idtr.limit = (uint16_t)sizeof(idt_entry_t) * IDT_MAX_DESCRIPTORS - 1;
+    kprintf("limit: %d\n", idtr.limit);
 
-    for (uint8_t vector = 0; vector < 34; vector++) {
+    for (uint8_t vector = 0; vector < IDT_MAX_DESCRIPTORS; vector++) {
         idt_set_descriptor(vector, (void *)_isr_addr[vector], 0x8E);
         vectors[vector] = true;
     }

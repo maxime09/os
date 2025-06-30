@@ -15,6 +15,20 @@ pub struct RSDP_t{
     addr: u32
 }
 
+#[derive(Debug, TryFromBytes, KnownLayout, Immutable, Unaligned)]
+#[repr(C, packed)]
+pub struct XSDP_t{
+    signature: [u8; 8],
+    checksum: u8,
+    OEMID: [u8; 6],
+    revision: u8,
+    old_addr: u32,
+    length: u32,
+    addr: u64,
+    extended_checksum: u8,
+    reserved: [u8; 3],
+}
+
 #[derive(Debug, TryFromBytes, KnownLayout, Immutable, Unaligned, Clone)]
 #[repr(C, packed)]
 pub struct ACPISTDHeader{
@@ -48,18 +62,25 @@ pub struct RSDT{
     header: ACPISTDHeader,
     base_addr: *const u8,
     entry_count: usize,
+    xsdt: bool,
 }
 
 impl RSDT{
     pub unsafe fn get_RSDT(rsdp: *mut core::ffi::c_void) -> Self{
-        let rsdp_struct = unsafe{ parse_rsdp(rsdp) };
-        let rsdt_addr = rsdp_struct.get_rsdt_addr();
-        let header = get_ACPISTD_header(rsdt_addr);
-        let entry_count = ((header.length as usize) - size_of::<ACPISTDHeader>()) / 4;
+        let rsdp_struct = unsafe{ parse_xsdp(rsdp) };
+        let rsdt_addr = rsdp_struct.get_table_addr();
+        let xsdt = rsdp_struct.is_xsdp();
+        let header = unsafe { get_ACPISTD_header(rsdt_addr) };
+        let entry_count = ((header.length as usize) - size_of::<ACPISTDHeader>()) / if xsdt{
+            8
+        }else{
+            4
+        };
         RSDT{
             header,
             base_addr: rsdt_addr as *const u8,
             entry_count,
+            xsdt
         }
     }
 
@@ -71,11 +92,18 @@ impl RSDT{
         let mut res = Vec::with_capacity(self.entry_count);
         let mut start_addr = unsafe{self.base_addr.offset(size_of::<ACPISTDHeader>().try_into().unwrap())};
         for _ in 0..self.entry_count{
-            let slice = unsafe {slice::from_raw_parts(start_addr, 4)};
-            let addr = u32::try_read_from_bytes(slice).unwrap() as usize;
+            let addr = if self.xsdt{
+                let slice = unsafe {slice::from_raw_parts(start_addr, 8)};
+                u64::try_read_from_bytes(slice).unwrap() as usize
+            }else{
+                let slice = unsafe {slice::from_raw_parts(start_addr, 4)};
+                u32::try_read_from_bytes(slice).unwrap() as usize
+            };
+            
             let ptr = unsafe { phys_addr_to_limine_virtual_addr(addr) } as *const core::ffi::c_void;
             res.push(ptr);
-            start_addr = unsafe{start_addr.offset(4)};
+            let offset = if self.xsdt { 8 } else { 4 };
+            start_addr = unsafe{start_addr.offset(offset)};
         }
         res
     }
@@ -100,8 +128,48 @@ impl RSDP_t{
         }
         (unsafe { phys_addr_to_limine_virtual_addr(self.addr as usize) }) as *const _
     }
+
 }
 
+impl XSDP_t{
+    pub fn get_xsdt_addr(&self) -> *const core::ffi::c_void{
+        (unsafe {  phys_addr_to_limine_virtual_addr(self.addr as usize)}) as * const core::ffi::c_void
+    }
+}
+
+enum PointerTable{
+    RSDP(RSDP_t),
+    XSDP(XSDP_t)
+}
+
+impl PointerTable{
+    pub fn get_table_addr(&self) -> *const core::ffi::c_void{
+        match self{
+            PointerTable::RSDP(rsdp) => rsdp.get_rsdt_addr(),
+            PointerTable::XSDP(xsdp) => xsdp.get_xsdt_addr()
+        }
+    }
+
+    pub fn is_xsdp(&self) -> bool{
+        match self {
+            PointerTable::RSDP(_) => false,
+            PointerTable::XSDP(_) => true
+        }
+    }
+}
+
+pub unsafe fn parse_xsdp(xsdp: *mut core::ffi::c_void) -> PointerTable{
+    let rsdp = unsafe { parse_rsdp(xsdp) };
+    if rsdp.revision == 0{
+        PointerTable::RSDP(rsdp)
+    }else{
+        let slice = unsafe {
+            slice::from_raw_parts(xsdp as *const u8, size_of::<XSDP_t>())};
+
+        let xsdp = XSDP_t::try_read_from_bytes(slice).unwrap();
+        PointerTable::XSDP(xsdp)
+    }
+}
 
 pub unsafe fn parse_rsdp(rsdp: *mut core::ffi::c_void) -> RSDP_t{
     let slice = unsafe { slice::from_raw_parts(rsdp as *const u8, size_of::<RSDP_t>()) };
@@ -202,6 +270,16 @@ impl MADT{
             }
         }
         result
+    }
+
+    pub fn find_override(&self, irq: u8) -> Option<u32>{
+        unsafe{
+            self.get_interrupt_overrides()
+                .iter()
+                .filter(|x|{ x.irq == irq })
+                .map(|x| { x.GSI } )
+                .next()
+        }
     }
 
 }

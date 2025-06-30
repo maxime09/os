@@ -14,7 +14,7 @@ pub mod interrupts;
 use alloc::{boxed::Box, vec::Vec};
 use fs::vfs;
 pub use interrupts::*;
-use rsdt::{get_ACPISTD_header, MADT};
+use rsdt::MADT;
 use spin::Mutex;
 use x86_64::instructions::hlt;
 pub mod fs;
@@ -36,17 +36,16 @@ fn panic(info: &PanicInfo) -> ! {
 pub extern "C" fn rust_kmain(initrd_ptr: *const core::ffi::c_void, initrd_size: usize, rsdp: *mut core::ffi::c_void) -> !{
     println!("Hello from rust!");
     
-    println!("rsdp address: {:p}", rsdp);
     let rsdt = unsafe { rsdt::RSDT::get_RSDT(rsdp) };
-    println!("RSDT: {:?}", rsdt);
     let madt = MADT::from_rsdt(&rsdt);
-    println!("MADT: {:?}", madt);
     let io_apic_addr = unsafe {
         madt.get_ioapic_addr()
     };
-    println!("io_apic_addr: {:p}", io_apic_addr);
-    let interrupt_overrides = unsafe { madt.get_interrupt_overrides() };
-    println!("interrupt overrides: {:?}", interrupt_overrides);
+    unsafe{
+        apic::setup_io_apic_addr(io_apic_addr);
+    }
+    println!("I/O APIC version: {}", unsafe{apic::get_io_apic_version()});
+    apic::set_task_priority(0);
 
     let data = unsafe{Box::from_raw(slice::from_raw_parts_mut(initrd_ptr as *mut u8, initrd_size))};
 
@@ -66,7 +65,9 @@ pub extern "C" fn rust_kmain(initrd_ptr: *const core::ffi::c_void, initrd_size: 
     });*/
 
     apic::setup_apic();
-    apic::setup_keyboard_interrupt(io_apic_addr);
+    apic::setup_PIT_interrupt(&madt);
+    apic::setup_keyboard_interrupt(&madt);
+    apic::timer::setup_apic_timer();
 
 
     unsafe { start_slave_core() };

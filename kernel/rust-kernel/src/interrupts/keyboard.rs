@@ -1,4 +1,4 @@
-use crate::{inb, keyboard_interrupt, PIC_sendEOI, kputc};
+use crate::{apic, inb, keyboard_interrupt, kputc, println, PIC_sendEOI};
 
 const KEYBOARD_DATA_PORT: u16 = 0x60;
 
@@ -10,11 +10,23 @@ pub unsafe fn read_scancode() -> u8{
 }
 
 pub fn handle_keyboard_interrupt(){
+    println!("pic");
     let scancode = unsafe{read_scancode()};
     if let Some(c) = scancode_to_char(parse_scancode(scancode)){
         unsafe{kputc(c as i8)};
     }
     PIC_sendEOI(keyboard_interrupt);
+}
+
+pub fn handle_apic_keyboard_interrupt(){
+    let scancode = unsafe {
+        read_scancode()
+    };
+    if let Some(c) = scancode_to_char(parse_scancode(scancode)){
+        unsafe{kputc(c as i8)};
+    }
+    unsafe { read_scancode() };
+    apic::send_EOI();
 }
 
 pub enum KeyCode{

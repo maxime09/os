@@ -124,6 +124,39 @@ error_code_interrupt_handler    30
 no_error_code_interrupt_handler 31
 no_error_code_interrupt_handler 32
 no_error_code_interrupt_handler 33
+no_error_code_interrupt_handler 34
+no_error_code_interrupt_handler 35
+no_error_code_interrupt_handler 36
+no_error_code_interrupt_handler 37
+no_error_code_interrupt_handler 38
+no_error_code_interrupt_handler 39
+no_error_code_interrupt_handler 40
+no_error_code_interrupt_handler 41
+no_error_code_interrupt_handler 42
+no_error_code_interrupt_handler 43
+no_error_code_interrupt_handler 44
+no_error_code_interrupt_handler 45
+no_error_code_interrupt_handler 46
+no_error_code_interrupt_handler 47
+no_error_code_interrupt_handler 48
+no_error_code_interrupt_handler 49
+no_error_code_interrupt_handler 50
+no_error_code_interrupt_handler 51
+no_error_code_interrupt_handler 52
+no_error_code_interrupt_handler 53
+no_error_code_interrupt_handler 54
+no_error_code_interrupt_handler 55
+no_error_code_interrupt_handler 56
+no_error_code_interrupt_handler 57
+no_error_code_interrupt_handler 58
+no_error_code_interrupt_handler 59
+no_error_code_interrupt_handler 60
+no_error_code_interrupt_handler 61
+no_error_code_interrupt_handler 62
+no_error_code_interrupt_handler 63
+
+
+
 
 
 _isr_addr:
@@ -161,3 +194,33 @@ _isr_addr:
     ISR_ADDR 31
     ISR_ADDR 32
     ISR_ADDR 33
+    ISR_ADDR 34
+    ISR_ADDR 35
+    ISR_ADDR 36
+    ISR_ADDR 37
+    ISR_ADDR 38
+    ISR_ADDR 39
+    ISR_ADDR 40
+    ISR_ADDR 41
+    ISR_ADDR 42
+    ISR_ADDR 43
+    ISR_ADDR 44
+    ISR_ADDR 45
+    ISR_ADDR 46
+    ISR_ADDR 47
+    ISR_ADDR 48
+    ISR_ADDR 49
+    ISR_ADDR 50
+    ISR_ADDR 51
+    ISR_ADDR 52
+    ISR_ADDR 53
+    ISR_ADDR 54
+    ISR_ADDR 55
+    ISR_ADDR 56
+    ISR_ADDR 57
+    ISR_ADDR 58
+    ISR_ADDR 59
+    ISR_ADDR 60
+    ISR_ADDR 61
+    ISR_ADDR 62
+    ISR_ADDR 63
