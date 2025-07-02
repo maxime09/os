@@ -68,8 +68,8 @@ void gdt_init(uint32_t core_id) {
     gdt_set_entry(4 + offset, 0, 0xffffffff, 0, 1, 0, 0, 1, 1, 1, 0); // 32 bit data segment
     gdt_set_entry(5 + offset, 0, 0xffffffff, 0, 1, 1, 0, 1, 1, 0, 1); // 64 bit kernel code segment
     gdt_set_entry(6 + offset, 0, 0xffffffff, 0, 1, 0, 0, 1, 1, 0, 1); // 64 bit kernel data segment
-    gdt_set_entry(7 + offset, 0, 0xffffffff, 0, 1, 1, 0, 1, 1, 0, 1); // 64 bit user code segment
-    gdt_set_entry(8 + offset, 0, 0xffffffff, 0, 1, 0, 0, 1, 1, 0, 1); // 64 bit user data segment
+    gdt_set_entry(7 + offset, 0, 0xffffffff, 3, 1, 1, 0, 1, 1, 0, 1); // 64 bit user code segment
+    gdt_set_entry(8 + offset, 0, 0xffffffff, 3, 1, 0, 0, 1, 1, 0, 1); // 64 bit user data segment
     
     memset(&tss[core_id], 0, sizeof(TSS_t));
 
@@ -83,3 +83,19 @@ void gdt_init(uint32_t core_id) {
     gdt_load(&gdt_p);
 }
 
+void set_tss_rsp(uint32_t core_id, uint64_t rsp, uint8_t rsp_number){
+    switch(rsp_number){
+        case 0:
+            tss[core_id].rsp0 = rsp;
+            break;
+        case 1:
+            tss[core_id].rsp1 = rsp;
+            break;
+        case 2:
+            tss[core_id].rsp2 = rsp;
+            break;
+        default:
+            kprintf("RSP%d doesn't exist\n");
+            break;
+    }
+}

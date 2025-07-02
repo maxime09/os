@@ -72,6 +72,13 @@ void map_page(PAGE_DIR current_page_directory, uintptr_t phys_addr, uintptr_t vi
         pml3[index3] |= PTE_READ_WRITE;
         pml4[index4] |= PTE_READ_WRITE;
     }
+
+    if(flags & PTE_USER_SUPERVISOR){
+        // set user/supervisor to higher level of pml
+        pml2[index2] |= PTE_USER_SUPERVISOR;
+        pml3[index3] |= PTE_USER_SUPERVISOR;
+        pml4[index4] |= PTE_USER_SUPERVISOR;
+    }
     flush_tlb((void *)virt_addr);
 }
 
@@ -161,6 +168,45 @@ void vmm_init(uintptr_t kernel_ro_start, uintptr_t kernel_ro_end, uintptr_t kern
 void slave_core_init_vmm(){
     update_cr3(new_cr3_value);
 };
+
+PAGE_DIR get_pml_entry_if_exists(PAGE_DIR pml, uintptr_t index){
+    if(pml[index] & 1){
+        //entry exist
+        // & ~(511) => remove bits 0 to 8;
+        return (PAGE_DIR)(pml[index] & ~(511));
+    }else{
+        return 0;
+    }
+}
+
+uintptr_t find_page_entry(uintptr_t virt_addr){
+    uintptr_t index4 = (virt_addr & ((uintptr_t)0x1ff << 39)) >> 39;
+    uintptr_t index3 = (virt_addr & ((uintptr_t)0x1ff << 30)) >> 30;
+    uintptr_t index2 = (virt_addr & ((uintptr_t)0x1ff << 21)) >> 21;
+    uintptr_t index1 = (virt_addr & ((uintptr_t)0x1ff << 12)) >> 12;
+
+    PAGE_DIR current_page_directory = (PAGE_DIR) phys_addr_to_limine_virtual_addr(get_cr3());
+
+    PAGE_DIR pml3 = get_pml_entry_if_exists(current_page_directory, index4);
+    if(pml3 == 0){
+        return 0;
+    }
+    pml3 = (PAGE_DIR)phys_addr_to_limine_virtual_addr((uintptr_t)pml3);
+
+    PAGE_DIR pml2 = get_pml_entry_if_exists(pml3, index3);
+    if(pml2 == 0){
+        return 0;
+    }
+    pml2 = (PAGE_DIR)phys_addr_to_limine_virtual_addr((uintptr_t)pml2);
+
+    PAGE_DIR pml1 = get_pml_entry_if_exists(pml2, index2);
+    if(pml1 == 0){
+        return 0;
+    }
+    pml1 = (PAGE_DIR)phys_addr_to_limine_virtual_addr((uintptr_t)pml1);
+
+    return pml1[index1];
+}
 
 void *find_phys_addr(PAGE_DIR pml4, uintptr_t virt_addr){
     uintptr_t index4 = (virt_addr & ((uintptr_t)0x1ff << 39)) >> 39;

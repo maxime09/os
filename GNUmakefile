@@ -22,13 +22,20 @@ all: $(IMAGE_NAME).iso
 .PHONY: all-hdd
 all-hdd: $(IMAGE_NAME).hdd
 
-kernel.sym: kernel/bin/kernel
+kernel.sym: kernel/bin/kernel 
 	objcopy --only-keep-debug kernel/bin/kernel kernel.sym
+
+kernel.bochs.sym: kernel.sym
+	nm kernel.sym | grep " T " | awk '{ print $$1" "$$3 }' > kernel.bochs.sym
+
+.PHONY: run-bochs
+run-bochs: $(IMAGE_NAME).iso kernel.bochs.sym
+	bochs
 
 .PHONY: run-debug
 run-debug: $(IMAGE_NAME).iso kernel.sym
 	qemu-system-x86_64 \
-		-d int \
+		-d int,cpu_reset \
 		-no-reboot \
 		-M q35 \
 		-s -S \
@@ -91,8 +98,16 @@ limine/limine:
 kernel: 
 	$(MAKE) -C kernel
 
+
+
+.PHONY: userspace_init/bin/init.elf
+userspace_init/bin/init.elf:
+	make -C userspace_init
+
+
 .PHONY: initrd
-initrd:
+initrd: userspace_init/bin/init.elf
+	cp userspace_init/bin/init.elf initrd_src/init.elf
 	cd initrd_src; tar cvf initrd *
 	mv initrd_src/initrd .
 

@@ -88,6 +88,13 @@ extern interrupt_handler
     pop rax
 %endmacro
 
+extern syscall_handler
+
+interrupt_handler_64:
+    pusha64
+    call syscall_handler
+    popa64
+    iretq
 
 
 no_error_code_interrupt_handler 0
@@ -224,3 +231,4 @@ _isr_addr:
     ISR_ADDR 61
     ISR_ADDR 62
     ISR_ADDR 63
+    ISR_ADDR 64

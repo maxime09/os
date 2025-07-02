@@ -45,7 +45,7 @@ void idt_set_descriptor(uint8_t vector, void* isr, uint8_t flags) {
     descriptor->reserved       = 0;
 }
 
-#define IDT_MAX_DESCRIPTORS 64
+#define IDT_MAX_DESCRIPTORS 65
 
 static bool vectors[IDT_MAX_DESCRIPTORS];
 
@@ -57,7 +57,11 @@ void idt_init() {
     kprintf("limit: %d\n", idtr.limit);
 
     for (uint8_t vector = 0; vector < IDT_MAX_DESCRIPTORS; vector++) {
-        idt_set_descriptor(vector, (void *)_isr_addr[vector], 0x8E);
+        uint8_t flags = 0x8E;
+        if(vector == 64){
+            flags = 0xEF; // syscall
+        }
+        idt_set_descriptor(vector, (void *)_isr_addr[vector], flags);
         vectors[vector] = true;
     }
 
@@ -69,3 +73,4 @@ void slave_load_idt(){
     __asm__ volatile ("lidt %0" : : "m"(idtr));
     __asm__ volatile ("sti");
 }
+

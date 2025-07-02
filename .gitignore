@@ -2,7 +2,11 @@ limine/
 kernel.iso
 detailed.log
 kernel.sym
+kernel.bochs.sym
 kernel/bin
 kernel/obj
 .bochsrc
 initrd
+userspace_init/bin
+userspace_init/obj
+initrd_src/init.elf

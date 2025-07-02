@@ -23,10 +23,11 @@ pub mod pit;
 pub mod cpuid;
 pub mod apic;
 pub mod rsdt;
+pub mod elf;
 
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
-    println!("Kernel panic: {:?}", info);
+    println!("Kernel panic: {}", info);
     loop {
         hlt();
     }
@@ -46,32 +47,47 @@ pub extern "C" fn rust_kmain(initrd_ptr: *const core::ffi::c_void, initrd_size: 
     }
     println!("I/O APIC version: {}", unsafe{apic::get_io_apic_version()});
     apic::set_task_priority(0);
+    println!("reading initrd");
 
     let data = unsafe{Box::from_raw(slice::from_raw_parts_mut(initrd_ptr as *mut u8, initrd_size))};
 
+
+    println!("parsing tar header");
     let headers = fs::ustar::parse_file(&data);
 
     let vfs = fs::ustar::headers_to_fs(headers, data);
 
-    let path_test = vfs::PathBuf::from("test3/test4");
     let mountpoint = vfs.get_mountpoint().unwrap();
-    let node = vfs.find(path_test).unwrap();
-    let data = vfs.read(mountpoint, node, 0, 1024).unwrap();
-    let data_str = str::from_utf8(&data).unwrap();
-    println!("\n\n{}", data_str);
-    /*x86_64::instructions::interrupts::without_interrupts(|| {
-        pit::setup_PIT(10);
-        pic::IRQ_clear_mask(0);
-    });*/
+   
+    println!("reading init.elf");
+    let init_elf_path = vfs::PathBuf::from("init.elf");
+    let init_inode = vfs.find(init_elf_path).unwrap();
+    let init_inode_size = init_inode.get_size(mountpoint).unwrap();
+    let init_elf_data = vfs.read(mountpoint, init_inode, 0, init_inode_size).unwrap();
+    
+    println!("Setup apic");
 
     apic::setup_apic();
+    println!("Setup pit");
     apic::setup_PIT_interrupt(&madt);
+    println!("Setup keyboard");
     apic::setup_keyboard_interrupt(&madt);
+    println!("Setup apic timer");
     apic::timer::setup_apic_timer();
 
 
+    println!("Starting other cores if available");
     unsafe { start_slave_core() };
 
+
+    let entry_point = elf::init::load_init_elf(&init_elf_data);
+    println!("Entry point 0x{:x}", entry_point);
+
+    unsafe{
+        jump_to_usermode(entry_point);
+    }
+
+    println!("Execution ended");
 
     loop {
         hlt();
@@ -128,6 +144,7 @@ const heap_virtual_addr_start: usize = 0x1_000_000;
 const page_size: usize = 4096;
 const PTE_PRESENT: c_int = 1;
 const PTE_READ_WRITE: c_int = 2;
+const PTE_USER_SUPERVISOR: c_int = 4;
 
 #[unsafe(no_mangle)]
 pub extern "C" fn init_alloc(){
