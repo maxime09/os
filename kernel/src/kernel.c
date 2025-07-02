@@ -348,8 +348,8 @@ void start_slave_core(void){
     }
 }
 
-extern void usermode_switch(uintptr_t addr);
+extern void usermode_switch(uintptr_t addr, uintptr_t sp);
 
-void jump_to_usermode(uintptr_t addr){
-    usermode_switch(addr);
+void jump_to_usermode(uintptr_t addr, uintptr_t sp){
+    usermode_switch(addr, sp);
 }

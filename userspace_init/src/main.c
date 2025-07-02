@@ -1,5 +1,7 @@
+extern void print(char *);
+
 void main(){
-    __asm__  volatile ("","INT $64");
+    print("Hello from user mode\n");
     while(1){
         ;
     }

@@ -80,11 +80,11 @@ pub extern "C" fn rust_kmain(initrd_ptr: *const core::ffi::c_void, initrd_size: 
     unsafe { start_slave_core() };
 
 
-    let entry_point = elf::init::load_init_elf(&init_elf_data);
+    let (entry_point, sp) = elf::init::load_init_elf(&init_elf_data);
     println!("Entry point 0x{:x}", entry_point);
 
     unsafe{
-        jump_to_usermode(entry_point);
+        jump_to_usermode(entry_point, sp);
     }
 
     println!("Execution ended");

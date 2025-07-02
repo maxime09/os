@@ -2,7 +2,7 @@ global usermode_switch
 extern set_tss_rsp
 
 usermode_switch:
-
+  mov r9, rsi
   ; Set the segment registers to appropriate values for user mode
   mov rax, 0x43 ; user data segment
   mov ds, ax
@@ -12,8 +12,7 @@ usermode_switch:
 
   ;mov rax, 0x3B ; user code segment
   mov rax, rsp ; save stack pointer
-  mov r9, rax
-  mov r12, rdi
+  mov r10, rdi
 
   mov rdi, 0
   mov rsi, rax
@@ -27,5 +26,5 @@ usermode_switch:
   push rax
   mov rax, 0x3B 
   push rax
-  push r12
+  push r10
   iretq
