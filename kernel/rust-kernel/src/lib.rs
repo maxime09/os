@@ -1,6 +1,8 @@
 #![no_std]
 #![no_main]
 
+#![feature(sync_unsafe_cell)]
+
 #![allow(non_upper_case_globals)]
 #![allow(non_camel_case_types)]
 #![allow(non_snake_case)]
@@ -9,14 +11,17 @@ include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 
 extern crate alloc;
 
-use core::{ffi::c_int, fmt, panic::PanicInfo, slice};
+use core::{cell::SyncUnsafeCell, ffi::c_int, fmt, mem::MaybeUninit, panic::PanicInfo, slice};
 pub mod interrupts;
-use alloc::{boxed::Box, vec::Vec};
+use alloc::boxed::Box;
 use fs::vfs;
 pub use interrupts::*;
 use rsdt::MADT;
 use spin::Mutex;
 use x86_64::instructions::hlt;
+
+use crate::scheduler::{process::Process, Scheduler};
+
 pub mod fs;
 //pub mod pci;
 pub mod pit;
@@ -24,6 +29,14 @@ pub mod cpuid;
 pub mod apic;
 pub mod rsdt;
 pub mod elf;
+pub mod scheduler;
+pub mod allocator;
+
+const PTE_PRESENT: c_int = 1;
+const PTE_READ_WRITE: c_int = 2;
+const PTE_USER_SUPERVISOR: c_int = 4;
+
+static scheduler: SyncUnsafeCell<MaybeUninit<Scheduler>> = SyncUnsafeCell::new(MaybeUninit::uninit());
 
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
@@ -36,6 +49,10 @@ fn panic(info: &PanicInfo) -> ! {
 #[unsafe(no_mangle)]
 pub extern "C" fn rust_kmain(initrd_ptr: *const core::ffi::c_void, initrd_size: usize, rsdp: *mut core::ffi::c_void) -> !{
     println!("Hello from rust!");
+
+    println!("Setup apic");
+
+    apic::setup_apic();
     
     let rsdt = unsafe { rsdt::RSDT::get_RSDT(rsdp) };
     let madt = MADT::from_rsdt(&rsdt);
@@ -65,9 +82,7 @@ pub extern "C" fn rust_kmain(initrd_ptr: *const core::ffi::c_void, initrd_size: 
     let init_inode_size = init_inode.get_size(mountpoint).unwrap();
     let init_elf_data = vfs.read(mountpoint, init_inode, 0, init_inode_size).unwrap();
     
-    println!("Setup apic");
-
-    apic::setup_apic();
+    
     println!("Setup pit");
     apic::setup_PIT_interrupt(&madt);
     println!("Setup keyboard");
@@ -80,11 +95,17 @@ pub extern "C" fn rust_kmain(initrd_ptr: *const core::ffi::c_void, initrd_size: 
     unsafe { start_slave_core() };
 
 
-    let (entry_point, sp) = elf::init::load_init_elf(&init_elf_data);
+    let (entry_point, sp, heap_start, heap_len) = elf::init::load_init_elf(&init_elf_data);
     println!("Entry point 0x{:x}", entry_point);
+    unsafe { scheduler.get().as_mut().unwrap().write(Scheduler::new())};
+    let init_process = Process::new(1, entry_point, sp, heap_start, heap_len);
+    
 
     unsafe{
-        jump_to_usermode(entry_point, sp);
+        let scheduler_ref = scheduler.get().as_mut().unwrap().assume_init_mut();
+        scheduler_ref.add_to_queue(init_process);
+        scheduler_ref.next_process();
+        scheduler_ref.resume_current_process();
     }
 
     println!("Execution ended");
@@ -136,41 +157,11 @@ macro_rules! println {
     ($($arg:tt)*) => ($crate::print!("{}\n", format_args!($($arg)*)))
 }
 
-#[global_allocator]
-static ALLOCATOR: talc::Talck<spin::Mutex<()>, talc::ErrOnOom> = talc::Talc::new(talc::ErrOnOom).lock();
 
-const kernel_heap_size: usize = 4*1024*1024; // 4 Mb
-const heap_virtual_addr_start: usize = 0x1_000_000;
-const page_size: usize = 4096;
-const PTE_PRESENT: c_int = 1;
-const PTE_READ_WRITE: c_int = 2;
-const PTE_USER_SUPERVISOR: c_int = 4;
 
-#[unsafe(no_mangle)]
-pub extern "C" fn init_alloc(){
-    let page_count = kernel_heap_size / page_size;
-    
-    let mut virt_addr = heap_virtual_addr_start;
-    for _ in 0..page_count{
-        unsafe{
-            let page = alloc_page_phys_addr(1);
-            let phys_addr = page.addr();
-            if phys_addr == 0{
-                panic!("Failed to alloc pages for kernel heap");
-            }
-            map_page_kernel(phys_addr, virt_addr, PTE_PRESENT | PTE_READ_WRITE);
-        }
-        virt_addr += page_size;
-    }
 
-    let base = heap_virtual_addr_start as *mut u8;
-    let span = talc::Span::from_base_size(base, kernel_heap_size);
-    unsafe{
-        ALLOCATOR.lock().claim(span).expect("Failed to claim heap memory.");
-    }
 
-    println!("Heap allocator initialized.");
-}
+
 
 #[unsafe(no_mangle)]
 pub extern "C" fn rust_slave_main(core_id: u32, rsdp: *mut core::ffi::c_void){
@@ -178,5 +169,5 @@ pub extern "C" fn rust_slave_main(core_id: u32, rsdp: *mut core::ffi::c_void){
     let madt = MADT::from_rsdt(&rsdt);
     apic::setup_apic();
 
-    println!("Core {} started", core_id);
+
 }

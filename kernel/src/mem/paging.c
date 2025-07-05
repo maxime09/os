@@ -106,13 +106,13 @@ extern uint8_t limine_end;
 
 void vmm_init(uintptr_t kernel_ro_start, uintptr_t kernel_ro_end, uintptr_t kernel_wr_start, uintptr_t kernel_wr_end, uintptr_t initrd_start, uintptr_t initrd_end){
     PAGE_DIR root_page_directory = create_page_directory();
-    kprintf("Starting to map virtual memory 0/5\n");
+    //kprintf("Starting to map virtual memory 0/5\n");
 
     // Identity map the first 4 GB
-    for (uintptr_t i = 0; i < 4 * GB; i += PAGE_SIZE){
-        map_page(root_page_directory, i, i, PTE_PRESENT | PTE_READ_WRITE);
+    //for (uintptr_t i = 0; i < 4 * GB; i += PAGE_SIZE){
+    //    map_page(root_page_directory, i, i, PTE_PRESENT | PTE_READ_WRITE);
         
-    }
+   // }
     kprintf("Mapping virtual memory 1/5\n");
 
     //map initrd

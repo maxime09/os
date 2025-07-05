@@ -12,7 +12,7 @@ void *alloc_page_phys_addr(size_t page_count);
 void manually_alloc_page(void *ptr);
 uintptr_t phys_addr_to_limine_virtual_addr(uintptr_t phys_addr);
 void start_slave_core(void);
-void jump_to_usermode(uintptr_t addr, uintptr_t sp);
+void usermode_switch(uintptr_t addr, uintptr_t sp);
 uintptr_t find_page_entry(uintptr_t virt_addr);
 
 #endif

@@ -3,7 +3,7 @@ use core::slice;
 use alloc::{string::String, vec::Vec};
 use zerocopy::{Immutable, KnownLayout, TryFromBytes, Unaligned};
 
-use crate::phys_addr_to_limine_virtual_addr;
+use crate::{phys_addr_to_limine_virtual_addr, println};
 
 #[derive(Debug, TryFromBytes, KnownLayout, Immutable, Unaligned)]
 #[repr(C, packed)]
@@ -67,6 +67,7 @@ pub struct RSDT{
 
 impl RSDT{
     pub unsafe fn get_RSDT(rsdp: *mut core::ffi::c_void) -> Self{
+        let rsdp = unsafe { phys_addr_to_limine_virtual_addr(rsdp as usize) } as *mut core::ffi::c_void;
         let rsdp_struct = unsafe{ parse_xsdp(rsdp) };
         let rsdt_addr = rsdp_struct.get_table_addr();
         let xsdt = rsdp_struct.is_xsdp();
@@ -137,7 +138,7 @@ impl XSDP_t{
     }
 }
 
-enum PointerTable{
+pub enum PointerTable{
     RSDP(RSDP_t),
     XSDP(XSDP_t)
 }

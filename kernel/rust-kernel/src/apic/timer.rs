@@ -4,7 +4,7 @@ const APIC_REGISTER_TIMER_DIV: u32 = 0x3E0;
 const APIC_REGISTER_TIMER_INITCNT: u32 = 0x380;
 const APIC_REGISTER_TIMER_CURRCNT: u32 = 0x390;
 const APIC_REGISTER_LVT_TIMER: u32 = 0x320;
-const APIC_LVT_INT_MASKED: u32 = (1<<16);
+const APIC_LVT_INT_MASKED: u32 = 1<<16;
 const APIC_TIMER_PERIODIC: u32 = 0x20000;
 
 // Setup to apic timer to tick every 10 ms

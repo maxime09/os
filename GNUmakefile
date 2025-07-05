@@ -99,9 +99,12 @@ kernel:
 	$(MAKE) -C kernel
 
 
+.PHONY: library/bin/libsys.a
+library/bin/libsys.a:
+	make -C library
 
 .PHONY: userspace_init/bin/init.elf
-userspace_init/bin/init.elf:
+userspace_init/bin/init.elf: library/bin/libsys.a
 	make -C userspace_init
 
 
@@ -144,6 +147,8 @@ $(IMAGE_NAME).hdd: limine/limine kernel
 .PHONY: clean
 clean:
 	$(MAKE) -C kernel clean
+	$(MAKE) -C userspace_init clean
+	$(MAKE) -C library clean
 	rm -rf iso_root $(IMAGE_NAME).iso $(IMAGE_NAME).hdd
 
 .PHONY: distclean

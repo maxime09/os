@@ -34,12 +34,7 @@ pub fn double_fault_handler(error_code: u64){
 }
 
 pub fn PIT_handler(){
-    unsafe {
-        kputc(b'.' as i8);
-    }
     PIC_sendEOI(PIT_Interrupt);
-
-    reload_pit_with_same_divisor();
 }
 
 pub fn page_fault_handler(error_code: u64){

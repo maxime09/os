@@ -2,10 +2,11 @@ use core::slice;
 
 use elf::{endian::AnyEndian, segment::ProgramHeader, ElfBytes};
 
-use crate::{alloc_page_phys_addr, map_page_current, println, PTE_PRESENT, PTE_READ_WRITE, PTE_USER_SUPERVISOR};
+use crate::{alloc_page_phys_addr, map_page_current, PTE_PRESENT, PTE_READ_WRITE, PTE_USER_SUPERVISOR};
 
+const PAGE_SIZE: usize = 4096;
 
-pub fn load_init_elf(data: &[u8]) -> (usize, usize){
+pub fn load_init_elf(data: &[u8]) -> (usize, usize, usize, usize){
     let file = ElfBytes::<AnyEndian>::minimal_parse(data).unwrap();
     let segments = file.segments().unwrap();
     let mut end_of_segments = 0;
@@ -17,11 +18,14 @@ pub fn load_init_elf(data: &[u8]) -> (usize, usize){
             }
         }
     }
-    let sp = alloc_stack(end_of_segments);
-    (file.ehdr.e_entry as usize, sp)
+    let stack_start = alloc_memory_zone(end_of_segments as usize, 2);
+    let sp = stack_start + 2 * PAGE_SIZE - 16;
+    let heap_len = 16 * PAGE_SIZE;
+    let heap_addr = alloc_memory_zone(stack_start + 3 * PAGE_SIZE, heap_len / PAGE_SIZE);
+    (file.ehdr.e_entry as usize, sp, heap_addr, heap_len)
 }
 
-pub fn load_segment(header: &ProgramHeader, data: &[u8]) -> u64{
+pub fn load_segment(header: &ProgramHeader, data: &[u8]) -> usize{
     let alloc_size = header.p_memsz;
     let mut page_count = alloc_size / 4096;
     if (alloc_size % 4096) != 0{
@@ -48,18 +52,16 @@ pub fn load_segment(header: &ProgramHeader, data: &[u8]) -> u64{
     }
     let virt_addr = header.p_vaddr;
     let page_start = virt_addr - (virt_addr%4096);
-    page_start + 4096*page_count //return end of segment
+    (page_start + 4096*page_count) as usize //return end of segment
 }
 
-pub fn alloc_stack(base_addr: u64) -> usize{
-    let stack_start = base_addr + 4096;
-    let pages = unsafe {alloc_page_phys_addr(2)};
-    for i in 0..2{
-        let offset = (i * 4096) as usize;
+pub fn alloc_memory_zone(base_addr: usize, page_count: usize) -> usize{
+    let pages = unsafe {alloc_page_phys_addr(page_count)};
+    for i in 0..page_count{
+        let offset = (i * PAGE_SIZE) as usize;
         let phys_addr = (pages as usize) + offset;
-        let virt_addr = (stack_start as usize) + offset;
+        let virt_addr = (base_addr as usize) + offset;
         unsafe { map_page_current(phys_addr, virt_addr, PTE_PRESENT | PTE_READ_WRITE | PTE_USER_SUPERVISOR); }
     }
-    let stack_pointer = stack_start + 2*4096 - 8;
-    stack_pointer as usize
+    base_addr
 }

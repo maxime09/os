@@ -238,10 +238,12 @@ extern uint8_t kernel_ro_start;
 extern uint8_t kernel_ro_end;
 extern uint8_t kernel_wr_start;
 extern uint8_t kernel_wr_end;
+extern uint8_t heap_start;
+extern uint8_t heap_end;
 
 extern void rust_kmain(void *, uintptr_t, void *);
 extern void rust_slave_main(uint32_t, void *);
-extern void init_alloc();
+extern void init_alloc(uintptr_t, uintptr_t);
 
 void kmain(void){
 
@@ -304,14 +306,17 @@ void kmain(void){
     kputs("Initialized virtual memory manager\n");
     idt_init();
     kputs("Initialized interrupt descriptor table\n");
-    init_alloc();
+    uintptr_t heap_start_addr = (uintptr_t)&heap_start;
+    uintptr_t heap_end_addr = (uintptr_t)&heap_end;
+
+    init_alloc(heap_start_addr, heap_end_addr);
     kputs("Initialized kernel memory allocator\n");
 
     /*for(int i = 0; i < 32; i++){
         IRQ_clear_mask(i);
     }*/
     PIC_remap(0x20, 0x28);
-    kputs("Remmaped PIC\n");
+    kputs("Remapped PIC\n");
     IRQ_set_mask(0);
     IRQ_clear_mask(1);
 

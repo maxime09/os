@@ -1,4 +1,4 @@
-use crate::{apic, kputc};
+use crate::apic;
 
 const CHANNEL_0: u8 = 0;
 const ACCESS_LO_HI: u8 = 0b11 << 4;

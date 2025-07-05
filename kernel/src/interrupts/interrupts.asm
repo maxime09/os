@@ -88,12 +88,48 @@ extern interrupt_handler
     pop rax
 %endmacro
 
+
+%macro push_reg_syscall 0
+    push rbx
+    push rcx
+    push rbp
+    push rdi
+    push rsi
+    push r8
+    push r9
+    push r10
+    push r11
+    push r12
+    push r13
+    push r14
+    push r15
+%endmacro
+
+%macro pop_reg_syscall 0
+    pop r15
+    pop r14
+    pop r13
+    pop r12
+    pop r11
+    pop r10
+    pop r9
+    pop r8
+    pop rsi
+    pop rdi
+    pop rbp
+    pop rcx
+    pop rbx
+%endmacro
+
 extern syscall_handler
 
 interrupt_handler_64:
-    pusha64
+    push r9
+    mov r9, [rsp + 32] ; get process stack pointer
+    push_reg_syscall
     call syscall_handler
-    popa64
+    pop_reg_syscall
+    pop r9
     iretq
 
 
