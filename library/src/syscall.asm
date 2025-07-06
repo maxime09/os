@@ -14,6 +14,7 @@ exit:
     mov rdi, 2
     int 0x40
     ; This syscall should not return
+    ret ; in case it fail (should not happens)
 
 input:
     mov rdi, 3
@@ -24,5 +25,11 @@ memalign:
     mov rdx, rsi
     mov rsi, rdi
     mov rdi, 4
+    int 0x40
+    ret
+
+free:
+    mov rsi, rdi
+    mov rdi, 5
     int 0x40
     ret

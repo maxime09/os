@@ -7,6 +7,7 @@ void exit(unsigned int);
 char input();
 void *memalign(uintptr_t size, uintptr_t align);
 void *malloc(uintptr_t size);
+void free(void *)
 
 char parse_input(char);
 

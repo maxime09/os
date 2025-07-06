@@ -1,6 +1,6 @@
 use core::alloc::Layout;
 
-use crate::{keyboard, kputs, println, scheduler};
+use crate::{keyboard, kputs, println, scheduler::process, scheduler};
 
 #[unsafe(no_mangle)]
 pub extern "C" fn syscall_handler(
@@ -24,6 +24,9 @@ pub extern "C" fn syscall_handler(
         },
         4 => {
             syscall_alloc(rsi, rdx, &mut rax);
+        },
+        5 => {
+            syscall_free(rsi);
         }
         _ => {
             panic!("Unknown syscall {}", rdi);
@@ -60,10 +63,17 @@ pub fn syscall_alloc(size: u64, align: u64, out: &mut u64){
             .get_current_process()
             .unwrap()
         };
-        if let Ok(ptr) = process.malloc(layout){
-            *out = ptr.as_ptr().addr() as u64;
-        }else{
-            *out = 0;
-        }
+        *out = process.malloc(layout) as u64;
+    })
+}
+
+pub fn syscall_free(ptr: u64){
+    x86_64::instructions::interrupts::without_interrupts(||{
+        let process = unsafe {
+            scheduler.get().as_mut().unwrap().assume_init_mut()
+            .get_current_process()
+            .unwrap()
+        };
+        process.free(ptr);
     })
 }
