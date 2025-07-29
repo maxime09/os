@@ -9,8 +9,8 @@ extern void common_interrupt_handler(void);
 
 extern void rust_interrupt_handler(uint64_t interrupt_code, uint64_t error_code);
 
-void interrupt_handler(uint64_t interrupt_code, uint64_t error_code){
-    rust_interrupt_handler(interrupt_code, error_code);
+void interrupt_handler(interrupt_stack stack){
+    rust_interrupt_handler(stack.interrupt_code, stack.error_code);
 }
 
 typedef struct {

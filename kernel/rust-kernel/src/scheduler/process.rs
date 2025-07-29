@@ -20,7 +20,7 @@ impl ProcessAllocationData{
     fn new(heap_start: usize, heap_len: usize) -> Self{
         let mut allocator = talc::Talc::new(talc::ErrOnOom);
         let span = talc::Span::from_base_size(heap_start as *mut u8, heap_len);
-        unsafe { allocator.claim(span) };
+        unsafe { allocator.claim(span).expect("Failed to initialize process allocator") };
         let allocations = BTreeMap::new();
         ProcessAllocationData { allocator, allocations }
     }

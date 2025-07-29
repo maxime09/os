@@ -1,11 +1,11 @@
 #include "lib.h"
 #include "keymap.h"
 
-char parse_input(char input){
+char parse_input(unsigned char input){
     if (input >= 88){
         return 0;
     }else{
-        return azerty_keymap[input];
+        return azerty_keymap[(unsigned int)input];
     }
 }
 

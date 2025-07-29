@@ -3,7 +3,7 @@ use core::mem::MaybeUninit;
 use alloc::collections::vec_deque::VecDeque;
 use spin::Mutex;
 
-use crate::{PIC_sendEOI, apic, inb, io_wait, keyboard_interrupt, kputc, outb, println};
+use crate::{PIC_sendEOI, apic, inb, io_wait, keyboard_interrupt, kputc, outb};
 
 const KEYBOARD_DATA_PORT: u16 = 0x60;
 const KEYBOARD_COMMAND_PORT: u16 = 0x64;
@@ -235,7 +235,7 @@ pub fn reset() {
 }
 
 pub fn init() {
-    unsafe { KEYBOARD_BUFFER.lock().write(VecDeque::new()) };
+    KEYBOARD_BUFFER.lock().write(VecDeque::new());
 }
 
 // This should only be accessed by the bootstrap processor

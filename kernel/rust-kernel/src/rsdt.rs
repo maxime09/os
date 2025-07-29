@@ -3,7 +3,7 @@ use core::slice;
 use alloc::{string::String, vec::Vec};
 use zerocopy::{Immutable, KnownLayout, TryFromBytes, Unaligned};
 
-use crate::{phys_addr_to_limine_virtual_addr, println};
+use crate::phys_addr_to_limine_virtual_addr;
 
 #[derive(Debug, TryFromBytes, KnownLayout, Immutable, Unaligned)]
 #[repr(C, packed)]

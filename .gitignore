@@ -12,4 +12,4 @@ userspace_init/obj
 initrd_src/init.elf
 library/bin
 library/obj
-vscode/
+.vscode/

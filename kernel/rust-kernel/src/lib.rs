@@ -11,19 +11,18 @@ include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 
 extern crate alloc;
 
-use core::{cell::SyncUnsafeCell, ffi::c_int, fmt, mem::MaybeUninit, panic::PanicInfo, slice};
+use core::{cell::SyncUnsafeCell, ffi::c_int, mem::MaybeUninit, panic::PanicInfo, slice};
 pub mod interrupts;
 use alloc::boxed::Box;
 use fs::vfs;
 pub use interrupts::*;
 use rsdt::MADT;
-use spin::Mutex;
 use x86_64::instructions::hlt;
 
 use crate::scheduler::{process::Process, Scheduler};
 
 pub mod fs;
-//pub mod pci;
+pub mod pci;
 pub mod pit;
 pub mod cpuid;
 pub mod apic;
@@ -31,6 +30,9 @@ pub mod rsdt;
 pub mod elf;
 pub mod scheduler;
 pub mod allocator;
+pub mod print;
+
+
 
 const PTE_PRESENT: c_int = 1;
 const PTE_READ_WRITE: c_int = 2;
@@ -95,7 +97,7 @@ pub extern "C" fn rust_kmain(initrd_ptr: *const core::ffi::c_void, initrd_size: 
     unsafe { start_slave_core() };
 
 
-    let (entry_point, sp, heap_start, heap_len) = elf::init::load_init_elf(&init_elf_data);
+    let (entry_point, sp, heap_start, heap_len) = elf::load_elf_file(&init_elf_data);
     println!("Entry point 0x{:x}", entry_point);
     unsafe { scheduler.get().as_mut().unwrap().write(Scheduler::new())};
     let init_process = Process::new(1, entry_point, sp, heap_start, heap_len);
@@ -115,59 +117,14 @@ pub extern "C" fn rust_kmain(initrd_ptr: *const core::ffi::c_void, initrd_size: 
     }
 }
 
-pub fn write_string(s: &str){
-    for byte in s.bytes(){
-        match byte{
-            0x00..0x80 => unsafe { kputc(byte as i8)}
-            _ => ()
-        }
-    }
-}
-
-#[macro_export]
-macro_rules! print {
-    ($($arg:tt)*) => {
-        $crate::_print(format_args!($($arg)*))
-    };
-}
-
-struct KernelConsole();
-
-impl fmt::Write for KernelConsole{
-    fn write_str(&mut self, s: &str) -> fmt::Result {
-        write_string(s);
-        Ok(())
-    }
-}
-
-static Console: Mutex<KernelConsole> = Mutex::new(KernelConsole());
-
-#[doc(hidden)]
-pub fn _print(args: fmt::Arguments) {
-    use core::fmt::Write;
-    let mut console = Console.lock();
-    console.write_fmt(args).unwrap();
-}
-
-#[macro_export]
-macro_rules! println {
-    () => {
-        $crate::print("\n")
-    };
-    ($($arg:tt)*) => ($crate::print!("{}\n", format_args!($($arg)*)))
-}
-
-
-
-
-
-
 
 #[unsafe(no_mangle)]
-pub extern "C" fn rust_slave_main(core_id: u32, rsdp: *mut core::ffi::c_void){
+pub extern "C" fn rust_slave_main(_core_id: u32, rsdp: *mut core::ffi::c_void){
     let rsdt = unsafe { rsdt::RSDT::get_RSDT(rsdp) };
-    let madt = MADT::from_rsdt(&rsdt);
+    let _madt = MADT::from_rsdt(&rsdt);
     apic::setup_apic();
-
-
+    x86_64::instructions::interrupts::enable();
+    loop {
+        hlt();
+    }
 }

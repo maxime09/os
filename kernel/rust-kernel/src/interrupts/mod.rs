@@ -1,4 +1,4 @@
-use crate::{apic, find_page_entry, kputc, pit::{self, reload_pit_with_same_divisor}, println};
+use crate::{apic, find_page_entry, pit, println};
 
 pub mod pic;
 pub use pic::*;
@@ -13,6 +13,7 @@ pub const first_pic_spurious: u8 = 39;
 pub const apic_keyboard: u8 = 49;
 pub const PIT_APIC: u8 = 48;
 pub const APIC_TIMER: u8 = 50;
+pub const division_by_0: u8 = 0;
 
 #[unsafe(no_mangle)]
 pub extern "C" fn rust_interrupt_handler(interrupt_code: u64, error_code: u64){
@@ -25,7 +26,8 @@ pub extern "C" fn rust_interrupt_handler(interrupt_code: u64, error_code: u64){
         apic_keyboard => {keyboard::handle_apic_keyboard_interrupt()},
         PIT_APIC => {pit::interrupt_apic()},
         APIC_TIMER => {handle_apic_timer();}
-        _ => {panic!("Unhandled interrupt {}, error code: {}", interrupt_code, error_code);},
+        division_by_0 => {panic!("Division by 0")},
+        _ => {println!("Unhandled interrupt {}, error code: {}. Ignoring it.", interrupt_code, error_code);},
     }
 }
 

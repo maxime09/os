@@ -312,9 +312,6 @@ void kmain(void){
     init_alloc(heap_start_addr, heap_end_addr);
     kputs("Initialized kernel memory allocator\n");
 
-    /*for(int i = 0; i < 32; i++){
-        IRQ_clear_mask(i);
-    }*/
     PIC_remap(0x20, 0x28);
     kputs("Remapped PIC\n");
     IRQ_set_mask(0);
@@ -334,6 +331,7 @@ void kmain(void){
 }
 
 void slave_core_kmain(struct limine_mp_info * mp_info){
+    __asm__ volatile("cli");
     uint32_t core_id = mp_info->lapic_id;
     gdt_init(core_id);
     slave_core_init_vmm();

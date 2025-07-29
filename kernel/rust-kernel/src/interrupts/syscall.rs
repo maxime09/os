@@ -1,15 +1,15 @@
 use core::alloc::Layout;
 
-use crate::{keyboard, kputs, println, scheduler::process, scheduler};
+use crate::{keyboard, kputs, scheduler};
 
 #[unsafe(no_mangle)]
 pub extern "C" fn syscall_handler(
     rdi: u64,
     rsi: u64,
     rdx: u64,
-    rcx: u64,
-    r8: u64,
-    r9: u64,
+    _rcx: u64,
+    _r8: u64,
+    _r9: u64,
 ) -> u64 {
     let mut rax = 0;
     match rdi {
@@ -27,6 +27,9 @@ pub extern "C" fn syscall_handler(
         },
         5 => {
             syscall_free(rsi);
+        },
+        6 => {
+            file_syscall_handler();
         }
         _ => {
             panic!("Unknown syscall {}", rdi);
@@ -35,7 +38,7 @@ pub extern "C" fn syscall_handler(
     rax
 }
 
-pub fn syscall_exit(exit_code: u64) {
+pub fn syscall_exit(_exit_code: u64) {
     x86_64::instructions::interrupts::without_interrupts(|| unsafe {
         scheduler
             .get()
@@ -76,4 +79,8 @@ pub fn syscall_free(ptr: u64){
         };
         process.free(ptr);
     })
+}
+
+pub fn file_syscall_handler(){
+
 }

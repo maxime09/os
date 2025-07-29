@@ -8,14 +8,15 @@ interrupt_handler_%1:
     push rsi ; save old rsi
     xor rsi, rsi
     mov esi, [rsp+8]
+    push qword %1
 
     pusha64
-
-    mov rdi, %1
 
     call interrupt_handler
 
     popa64
+
+    add rsp, 8
 
     pop rsi ; restore old rsi
 
@@ -30,14 +31,15 @@ interrupt_handler_%1:
     push rsi ; save old rsi
     xor rsi, rsi
     mov esi, [rsp+8]
+    push qword %1
 
     pusha64
-
-    mov rdi, %1
 
     call interrupt_handler
 
     popa64
+
+    add rsp, 8
 
     pop rsi ; restore old rsi
 

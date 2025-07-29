@@ -1,7 +1,7 @@
 #ifndef __KEYMAP_H__
 #define __KEYMAP_H__
 
-char azerty_keymap[89] = {
+const char azerty_keymap[89] = {
 0,0,'&',0,'"','\'','(','-',0,'_',0,0,')','=',0, //0x0F
 0,'a','z','e','r','t','y','u','i','o','p','^','$',0, //0x1C
 0,'q','s','d','f','g','h','j','k','l','m',0, //0x28
