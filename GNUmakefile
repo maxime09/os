@@ -107,9 +107,11 @@ library/bin/libsys.a:
 userspace_init/bin/init.elf: library/bin/libsys.a
 	make -C userspace_init
 
+initrd_src:
+	mkdir initrd_src
 
 .PHONY: initrd
-initrd: userspace_init/bin/init.elf
+initrd: userspace_init/bin/init.elf initrd_src
 	cp userspace_init/bin/init.elf initrd_src/init.elf
 	cd initrd_src; tar cvf initrd *
 	mv initrd_src/initrd .
