@@ -1,0 +1,8 @@
+cargo-features = ["build-std"]
+
+[unstable]
+build-std = ["core"]
+
+[build]
+target = "../kernel/rust-kernel/x86_64-myos.json"
+rustflags = "--cfg f16_enabled"

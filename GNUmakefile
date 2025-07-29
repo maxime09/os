@@ -103,16 +103,16 @@ kernel:
 library/bin/libsys.a:
 	make -C library
 
-.PHONY: userspace_init/bin/init.elf
-userspace_init/bin/init.elf: library/bin/libsys.a
-	make -C userspace_init
+.PHONY: shell/bin/init.elf
+shell/bin/init.elf: library/bin/libsys.a
+	make -C shell
 
 initrd_src:
 	mkdir initrd_src
 
 .PHONY: initrd
-initrd: userspace_init/bin/init.elf initrd_src
-	cp userspace_init/bin/init.elf initrd_src/init.elf
+initrd: shell/bin/init.elf initrd_src
+	cp shell/bin/init.elf initrd_src/init.elf
 	cd initrd_src; tar cvf initrd *
 	mv initrd_src/initrd .
 

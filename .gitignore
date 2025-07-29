@@ -13,3 +13,5 @@ initrd_src/init.elf
 library/bin
 library/obj
 .vscode/
+shell/bin
+shell/obj
