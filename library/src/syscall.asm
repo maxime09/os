@@ -33,3 +33,16 @@ free:
     mov rdi, 5
     int 0x40
     ret
+
+putc:
+    mov rsi, rdi
+    mov rdi, 8
+    int 0x40
+    ret
+
+move_cursor
+    mov rdx, rsi
+    mov rsi, rdi
+    mov rdi, 7
+    int 0x40
+    ret

@@ -1,6 +1,6 @@
 use core::alloc::Layout;
 
-use crate::{keyboard, kputs, scheduler};
+use crate::{keyboard, kputc, kputs, scheduler};
 
 #[unsafe(no_mangle)]
 pub extern "C" fn syscall_handler(
@@ -30,6 +30,14 @@ pub extern "C" fn syscall_handler(
         },
         6 => {
             file_syscall_handler();
+        }
+        7 => {
+            move_cursor_syscall_handler(rsi, rdx);
+        }
+        8 => {
+            unsafe{
+                kputc(rsi as i8);
+            }
         }
         _ => {
             panic!("Unknown syscall {}", rdi);
@@ -83,4 +91,10 @@ pub fn syscall_free(ptr: u64){
 
 pub fn file_syscall_handler(){
 
+}
+
+pub fn move_cursor_syscall_handler(x: u64, y: u64){
+    unsafe{
+        crate::move_cursor(x as usize, y as usize);
+    }
 }

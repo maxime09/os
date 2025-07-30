@@ -126,6 +126,11 @@ size_t char_pos_y = 0;
 size_t char_per_row;
 size_t rows_count;
 
+void move_cursor(size_t x, size_t y){
+    char_pos_x = x;
+    char_pos_y = y;
+}
+
 void kputc(char c){
     if(c == '\n'){
         char_pos_x = 0;

@@ -15,4 +15,6 @@ void start_slave_core(void);
 void usermode_switch(uintptr_t addr, uintptr_t sp);
 uintptr_t find_page_entry(uintptr_t virt_addr);
 
+void move_cursor(size_t x, size_t y);
+
 #endif
